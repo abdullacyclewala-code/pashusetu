@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, Role } from "@/lib/types";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import {
   CowIcon,
   GridIcon,
@@ -203,6 +204,7 @@ export function AppShell({
         <main className="mx-auto w-full max-w-[1140px] flex-1 px-[clamp(18px,3vw,40px)] pt-[clamp(22px,3.4vw,44px)] pb-[90px] max-[880px]:px-4 max-[880px]:pt-5 max-[880px]:pb-24">
           {children}
         </main>
+        <OfflineSyncBadge />
       </div>
 
       {/* ---- bottom tabs (mobile) ---- */}
