@@ -1,0 +1,113 @@
+{
+  "app": {
+    "name": "PashuSetu",
+    "script": "पशुसेतु"
+  },
+  "nav": {
+    "workspace": "Workspace",
+    "screening": "Screening",
+    "dash": "Dashboard",
+    "report": "Report",
+    "cases": "Cases",
+    "herd": "Herd",
+    "triage": "Triage",
+    "logout": "Sign out"
+  },
+  "titles": {
+    "dash": "Overview",
+    "report": "New report",
+    "cases": "Cases & labs",
+    "herd": "My herd",
+    "triage": "Triage"
+  },
+  "crumbs": {
+    "dash": "Dashboard",
+    "report": "Field report",
+    "cases": "Pipeline",
+    "herd": "Herd",
+    "triage": "Screening"
+  },
+  "roles": {
+    "farmer": "Farmer",
+    "pashu_mitra": "Pashu Mitra",
+    "vet": "Veterinarian",
+    "officer": "District Officer",
+    "lab": "Laboratory",
+    "admin": "Admin"
+  },
+  "landing": {
+    "kicker": "Every farmer is a sensor",
+    "headline": "See the outbreak <em>before</em> it spreads.",
+    "sub": "Report a sick animal in your own language in under two minutes — get instant, explainable triage while district officers watch the live risk map.",
+    "getStarted": "Get started",
+    "signIn": "Sign in",
+    "cap": "Live surveillance · Maharashtra",
+    "disclaimer": "Preliminary triage, not a diagnosis — always consult a veterinarian."
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSub": "Sign in to your PashuSetu account.",
+    "signupTitle": "Create your account",
+    "signupSub": "Join as a farmer, field worker or official.",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full name",
+    "phone": "Phone (optional)",
+    "role": "I am a",
+    "village": "Village",
+    "taluka": "Taluka",
+    "district": "District",
+    "language": "Preferred language",
+    "loginBtn": "Sign in",
+    "signupBtn": "Create account",
+    "working": "Please wait…",
+    "noAccount": "New to PashuSetu?",
+    "haveAccount": "Already have an account?",
+    "signupLink": "Create an account",
+    "loginLink": "Sign in",
+    "confirmEmail": "Account created. Check your email to confirm, then sign in.",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "dashboard": {
+    "eyebrow": "Live surveillance",
+    "heading": "Dashboard",
+    "heroKicker": "Every farmer is a sensor",
+    "heroTitle": "Field reports, <em>triage</em> and live risk — one bridge.",
+    "heroSub": "PashuSetu links farmers, paravets, vets and district officers on one real-time animal health network.",
+    "heroCta": "New report",
+    "heroCta2": "View cases",
+    "heroCap": "3D terrain · live network",
+    "welcome": "Welcome, {name}",
+    "emptyTitle": "No data yet",
+    "emptyBody": "Overview stats, the live map and recent reports will appear here as parts are built."
+  },
+  "report": {
+    "eyebrow": "Field report",
+    "heading": "Report",
+    "lede": "Report a sick or dead animal in under two minutes — works offline too.",
+    "emptyTitle": "Report wizard",
+    "emptyBody": "Species → Symptoms → Counts → Location → Submit. Coming in Part 1."
+  },
+  "cases": {
+    "eyebrow": "Case + lab pipeline",
+    "heading": "Cases",
+    "lede": "Status pipeline: Suspected → Confirmed → Sampled → Contained.",
+    "emptyTitle": "Pipeline",
+    "emptyBody": "Case columns and their cards will render here. Coming in Part 6."
+  },
+  "herd": {
+    "eyebrow": "Herd health",
+    "heading": "Herd",
+    "lede": "Per-animal records and vaccination history.",
+    "emptyTitle": "Herd records",
+    "emptyBody": "Animal cards, vaccination list and coverage rings go here. Coming in Part 1."
+  },
+  "triage": {
+    "eyebrow": "Explainable triage",
+    "heading": "Triage",
+    "lede": "Rule-based assessment shown transparently — always preliminary, never a diagnosis.",
+    "emptyTitle": "Triage result",
+    "emptyBody": "Suspected condition, confidence, reasons, first-aid advisory and next actions. Coming in Part 2.",
+    "disclaimer": "Preliminary triage, not a diagnosis — always consult a veterinarian."
+  }
+}
