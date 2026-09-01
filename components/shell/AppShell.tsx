@@ -205,7 +205,7 @@ export function AppShell({
             <Link
               key={n.key}
               href={n.href}
-              className={`relative flex h-full flex-col items-center justify-center gap-[3px] font-mono text-[9.5px] font-semibold uppercase tracking-[0.04em] ${
+              className={`relative flex h-full flex-col items-center justify-center gap-[3px] whitespace-nowrap font-mono text-[9.5px] font-semibold uppercase tracking-[0.04em] ${
                 active === n.key ? "text-accent" : "text-mut2"
               }`}
             >
@@ -221,15 +221,15 @@ export function AppShell({
           return (
             <div
               className="mx-auto grid h-[62px] max-w-[480px]"
-              style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
               {items.slice(0, canReport ? mid : items.length).map(Tab)}
               {canReport && (
-                <div className="relative flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   <Link
                     href="/dashboard/report"
                     aria-label={t("nav.report")}
-                    className="absolute -top-[18px] grid h-[52px] w-[52px] place-items-center rounded-full border-4 border-card bg-accent text-white shadow-[0_3px_10px_rgba(168,67,31,0.3)]"
+                    className="grid h-[50px] w-[50px] -translate-y-[13px] place-items-center rounded-full border-4 border-card bg-accent text-white shadow-[0_3px_10px_rgba(168,67,31,0.3)]"
                   >
                     <PlusIcon className="h-[22px] w-[22px]" />
                   </Link>
