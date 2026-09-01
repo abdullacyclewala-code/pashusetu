@@ -12,21 +12,24 @@
     "herd": "Herd",
     "triage": "Triage",
     "logout": "Sign out",
-    "home": "Home"
+    "home": "Home",
+    "alerts": "Alerts"
   },
   "titles": {
     "dash": "Overview",
     "report": "New report",
     "cases": "Cases & labs",
     "herd": "My herd",
-    "triage": "Triage"
+    "triage": "Triage",
+    "alerts": "Alerts"
   },
   "crumbs": {
     "dash": "Dashboard",
     "report": "Field report",
     "cases": "Pipeline",
     "herd": "Herd",
-    "triage": "Screening"
+    "triage": "Screening",
+    "alerts": "Alerts"
   },
   "roles": {
     "farmer": "Farmer",
@@ -110,5 +113,12 @@
     "emptyTitle": "Triage result",
     "emptyBody": "Suspected condition, confidence, reasons, first-aid advisory and next actions. Coming in Part 2.",
     "disclaimer": "Preliminary triage, not a diagnosis — always consult a veterinarian."
+  },
+  "alerts": {
+    "eyebrow": "Early warning",
+    "heading": "Alerts",
+    "lede": "Outbreak warnings, field-verify flags and vaccination reminders for your area.",
+    "emptyTitle": "No alerts",
+    "emptyBody": "Cluster and early-warning alerts for your village will appear here. Coming in Part 5."
   }
 }

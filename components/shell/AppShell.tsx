@@ -14,6 +14,7 @@ import {
   HerdIcon,
   TriageIcon,
   LogoutIcon,
+  BellIcon,
 } from "@/components/icons";
 
 /**
@@ -24,7 +25,7 @@ import {
  * officers/vets/labs see the surveillance side.
  */
 
-type NavKey = "dash" | "report" | "cases" | "herd" | "triage";
+type NavKey = "dash" | "report" | "cases" | "herd" | "alerts" | "triage";
 
 interface NavItem {
   key: NavKey;
@@ -55,6 +56,7 @@ const NAV: NavItem[] = [
     roles: ["farmer", "pashu_mitra", "admin"],
     icon: HerdIcon,
   },
+  { key: "alerts", href: "/dashboard/alerts", roles: ALL, icon: BellIcon },
 ];
 
 const SCREENING: NavItem[] = [
@@ -68,7 +70,13 @@ const SCREENING: NavItem[] = [
 
 function activeKey(pathname: string): NavKey {
   const seg = pathname.split("/")[2];
-  if (seg === "report" || seg === "cases" || seg === "herd" || seg === "triage")
+  if (
+    seg === "report" ||
+    seg === "cases" ||
+    seg === "herd" ||
+    seg === "alerts" ||
+    seg === "triage"
+  )
     return seg;
   return "dash";
 }
