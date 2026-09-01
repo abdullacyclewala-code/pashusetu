@@ -392,3 +392,78 @@ a:focus-visible {
   color: #7d7461;
   text-transform: uppercase;
 }
+
+/* legibility scrim between the terrain canvas and the hero copy */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(40, 32, 22, 0.88) 0%,
+    rgba(40, 32, 22, 0.55) 38%,
+    rgba(40, 32, 22, 0) 62%
+  );
+}
+
+/* ============================================================
+   MOBILE POLISH (≤640px) — this app is mobile-first for farmers
+   ============================================================ */
+@media (max-width: 640px) {
+  .hero {
+    min-height: 0;
+    border-radius: 16px;
+  }
+  .hero canvas {
+    opacity: 0.6;
+  }
+  .hero::before {
+    background: linear-gradient(
+      180deg,
+      rgba(40, 32, 22, 0.35) 0%,
+      rgba(40, 32, 22, 0.72) 70%,
+      rgba(40, 32, 22, 0.85) 100%
+    );
+  }
+  .hero .h-in {
+    max-width: none;
+    width: 100%;
+    padding: 26px 20px 54px;
+  }
+  .hero h1 {
+    font-size: 27px;
+    margin-top: 14px;
+  }
+  .hero p {
+    font-size: 13.5px;
+    margin-top: 12px;
+    max-width: none;
+  }
+  .hero .h-cta {
+    margin-top: 20px;
+  }
+  .hero .h-cta .btn {
+    flex: 1 1 auto;
+  }
+  .hero .h-cap {
+    bottom: 12px;
+    left: 20px;
+  }
+  .empty {
+    padding: 44px 20px;
+    margin-top: 20px;
+    gap: 10px;
+  }
+  .empty .e-ico {
+    width: 48px;
+    height: 48px;
+  }
+  .h1 {
+    margin-top: 6px;
+  }
+  .btn-lg {
+    padding: 13px 20px;
+  }
+}

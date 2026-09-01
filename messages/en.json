@@ -11,7 +11,8 @@
     "cases": "Cases",
     "herd": "Herd",
     "triage": "Triage",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "home": "Home"
   },
   "titles": {
     "dash": "Overview",

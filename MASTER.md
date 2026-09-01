@@ -60,8 +60,9 @@ A report→heatmap CRUD app is **not** novel; 100 teams will build that. Our fou
 | 2 | 📞 **Voice-first reporting** | Feature-phone farmer: missed-call/WhatsApp → speaks symptoms in Marathi → Bhashini ASR → structured report. 100% farmer reach, not the smartphone minority | P8 |
 | 3 | 🔍 **Explainable triage** | Rule engine returns a differential list + reasons + confidence, never a black box → the trust that makes a govt dept adopt it | P2 |
 | 4 | 📍 **Geo-cluster + officer-confirm flywheel** | PostGIS clustering auto-flags outbreaks; every officer confirm/reject silently becomes labeled training data for the next version | P5 + P3 |
+| 5 | 🐄 **IoT telemetry — "the herd reports on itself"** | Simulated wearable/shed sensors (body temp, rumination, activity, milk, THI) stream into the SAME pipeline → auto-detect fever/rumination-drop → auto-report before any human notices. Ingest is production-identical; only the data source is simulated (digital twin) | P9 |
 
-**Anti-novelty (deliberately avoided):** CRUD-only dashboard · chatbot wrapper · blockchain-for-the-sake-of-it · IoT gimmicks — judges are tired of these.
+**Anti-novelty (deliberately avoided):** CRUD-only dashboard · chatbot wrapper · blockchain-for-the-sake-of-it · "AI" with no explainability.
 
 ---
 
@@ -88,9 +89,9 @@ A report→heatmap CRUD app is **not** novel; 100 teams will build that. Our fou
 
 **MVP scope (MoSCoW):**
 - **Must:** symptom/mortality report (species, symptoms, geo, optional photo) online+offline · instant rule-based triage + urgency + advisory · officer map dashboard with confirm/reject · geo-cluster outbreak flag.
-- **Should:** WhatsApp reporting · herd/animal + vaccination records · case escalation → lab referral with status tracking · syndromic dairy anomaly flag.
+- **Should:** WhatsApp reporting · herd/animal + vaccination records · case escalation → lab referral with status tracking · syndromic dairy anomaly flag · **IoT telemetry (simulated sensors → auto-report)**.
 - **Could (stretch):** missed-call IVR (Bhashini ASR) · ML image classifier · weather-model early warning · insurance-claim export.
-- **Won't (this cycle):** IoT wearables, drones, blockchain.
+- **Won't (this cycle):** building physical sensor hardware, drones, blockchain — we *simulate* sensor data (digital twin), not manufacture devices.
 
 **Non-negotiable rules:**
 1. **Disclaimer:** every advisory shows "preliminary triage, not a diagnosis — consult a vet". Photo is never required to trigger triage.
@@ -115,6 +116,16 @@ A report→heatmap CRUD app is **not** novel; 100 teams will build that. Our fou
 | Farmer channel | WhatsApp Cloud API (free ~1k convos/mo) primary · missed-call IVR (Twilio, paid) stretch · Web-Speech+Bhashini as free fallback | Matches real rural phone usage |
 | Weather (stretch) | Open-Meteo (free, no key) | Feeds early-warning |
 | Charts | Recharts | React-native fit |
+| IoT telemetry | Ingest endpoint (Supabase Edge Fn) + `devices`/`telemetry` tables + simulator (Node script + in-app toggle) · optional MQTT (HiveMQ Cloud free, 100 devices) | Real sensors publish the same JSON → one-config swap |
+
+**Where the "AI" actually runs — no separate host (Render) needed:**
+- Triage MVP = **rule engine** (code, not a trained model) → Supabase Edge Function. Zero training.
+- Early-warning = **EWMA/z-score/seasonality** (statistics, not ML) → scheduled SQL + edge job. Zero training.
+- Cluster detect = **PostGIS query** (DB math). No training.
+- Vernacular parsing = **Groq (hosted LLM)** — they run the model, we call an API.
+- Image classifier (optional P8) = **train ONCE offline** (Colab/laptop) → freeze+quantize to `.onnx/.tflite` → commit as static file → **infer on-device in browser** (ONNX Runtime Web/WASM). No training server, works offline.
+- IoT simulator = **script/in-app page streaming JSON** to the ingest endpoint — no broker needed; optional MQTT bridge (HiveMQ Cloud free) for hardware realism.
+- Add Render/Fly/Railway ONLY if you later build a real Python ML service (XGBoost/Prophet on NADRS history) — a v2 upgrade, not the base.
 
 **Env vars (`.env.example`):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BHASHINI_USER_ID`, `BHASHINI_API_KEY`, `GROQ_API_KEY` (opt), `WHATSAPP_TOKEN`/`WHATSAPP_PHONE_ID` (opt), `TWILIO_*` (opt).
 
@@ -144,6 +155,8 @@ vaccinations  (id, animal_id, vaccine, dose_no, date, administered_by, campaign)
 vets          (id, name, phone, location, district, taluka)
 alerts        (id, severity, audience, channel, message_json, read)
 milk_collections (id, dairy_id, village, block, date, species, avg_yield_kg, animals_count)   ← syndromic input (P8)
+devices        (id, type[ear_tag|rumen_bolus|neck_collar|shed_env|milk_line], animal_id?, village, block, district, lat/lng, protocol[http|mqtt], status, last_seen)
+telemetry      (id, device_id, ts, body_temp_c?, rumination_min?, activity?, milk_yield_kg?, env_temp_c?, humidity_pct?, ammonia_ppm?, battery_pct, ingested_at)  ← IoT input (P9)
 ```
 
 RLS on every table: farmers see only their own data; officers only their jurisdiction; admins all.
@@ -162,6 +175,19 @@ Farmer (PWA offline / WhatsApp / voice)
 ---
 
 ## 7. BUILD PLAN — ONE PART AT A TIME
+
+### DEPTH ANCHORS (anti-shallow — parts below must meet these bars, not a "kind of works" version)
+A report→heatmap CRUD is commodity; these 4 anchors are what make the project win.
+
+**ANCHOR A — Covariate-adjusted anomaly detection (dairy P8 + IoT P9 reuse).** Naive z-score on milk yield = false-alarm hell (yield also dips from heat, monsoon, feed, milk price). Correct spec: (1) detrend + deseasonalize (7-day rolling median or STL) · (2) fit linear model `yield_residual = yield − f(temp, humidity, rainfall, lactation-stage)` (covariates from Open-Meteo) · (3) flag when residual < −2.5σ for 2 consecutive days → auto "field-verify" alert (novelty #1). Accept: planted dip on a heat-wave day → NOT flagged · unexplained planted dip → flagged ≤24h · false-positive ≤5% over 90 clean synthetic days.
+
+**ANCHOR B — Offline sync correctness.** Most teams claim offline, few do it right. Spec: client-generated `report_uuid` + unique index (idempotent, no dupes on retry) · last-writer-wins on `updated_at`/`client_ts` · ordered replay + visible sync status (queued→synced). Accept: airplane-mode submit 3 → reconnect → exactly 3 rows · offline edit vs online edit → deterministic winner · kill app mid-sync → no loss on restart.
+
+**ANCHOR C — Explainable differential triage.** Not "lookup symptoms → best match." Spec: Bayesian `P(disease|symptoms,species,season,district) ∝ P(symptoms|disease) × prevalence_prior` · per-candidate matched + missed symptoms · top-3 with reasons + confidence · notifiable/zoonotic escalation flag · disclaimer always. Accept: "fever+mouth blisters+drooling+lameness, cattle, monsoon, Ahmednagar" → FMD top with reasons · gibberish → low confidence, no crash · every result shows *why*.
+
+**ANCHOR D — IoT "the herd reports on itself" (P9).** Simulated sensors stream the exact schema real hardware would (§5). Depth = realistic per-animal baselines + disease-injection scenario + control day, not random noise. Accept: injected FMD scenario → auto-reports + cluster alert with zero manual input · heat-wave control day → zero false alerts.
+
+---
 
 Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Files to read next.**
 
@@ -216,13 +242,19 @@ Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Fi
 **PART 8 — Early-warning: syndromic dairy signal (flagship novelty) + weather**
 - Goal: predict, don't just react — detect outbreaks *before* clinical reports.
 - Build: `milk_collections` seeded with a normal seasonal baseline + a planted dip · nightly job computes village z-score vs seasonal baseline → anomaly → auto `alerts` ("field-verify") · EWMA/anomaly on `reports` count + Open-Meteo weather join → `/api/forecast` + risk-zone map layer. *(Optional, last: replace mock image classifier with small TFLite/ONNX model trained on public LSD/skin datasets, on-device; store as its own `triage_results` row `source='image_model'` — never overwrites the rule engine.)*
-- Accept: a planted village yield dip auto-generates a field-verify alert with a stated reason; a seeded report spike → "high risk" forecast next day.
+- Accept (Anchor A): planted dip on heat-wave day NOT flagged · unexplained dip flagged ≤24h with stated reason · seeded report spike → "high risk" forecast next day.
 - Next AI reads: `/supabase/functions/dairy-anomaly`, `milk_collections`, forecast route.
 
-**PART 9 — Polish, seed data, pitch assets**
+**PART 9 — IoT telemetry + simulator ("the herd reports on itself")** *(enhancement — automated reporting on top of the PS asks)*
+- Goal: 24/7 automated disease detection from simulated wearable/shed sensors feeding the SAME pipeline; architecture is real-hardware-ready.
+- Build: `devices` + `telemetry` tables · ingest endpoint `POST /api/ingest/telemetry` (schema-validated, idempotent on device_id+ts) · simulator: Node script + in-app toggle page ("start simulating herd") with per-animal baselines (temp 38.5±0.3°C, rumination 400–500 min/day, activity, milk) · scenario engine: inject FMD over 5 sim-days (fever 40–42°C → rumination −60% → yield drop; vitals lead clinical signs by 12–24h) + a heat-wave control day · per-animal anomaly detection (reuse Anchor A) → herd-concurrency check (M animals same village deviate) → auto-create `reports` row `source='iot'` → triage → dashboard · optional MQTT ingest stub (HiveMQ Cloud free).
+- Accept (Anchor D): injected FMD scenario → auto-reports + cluster alert, zero manual input · control day → no false alert · simulator toggle streams live charts.
+- Next AI reads: `/simulator/*`, ingest route, `telemetry`/`devices`, Anchor A code.
+
+**PART 10 — Polish, seed data, pitch assets**
 - Goal: fully demo-ready.
 - Build: realistic Maharashtra seed (simulate a past LSD-style outbreak timeline so clustering/dairy-anomaly "catch" it retroactively) · demo script (§9) · AICTE PPT visuals from §6 architecture · record demo video.
-- Accept: full loop — milk dip → field-verify → report → triage → cluster → map alert → case → lab → contained — runs live on seeded data.
+- Accept: full loop — milk dip → IoT auto-report → triage → cluster → map alert → case → lab → contained — runs live on seeded data.
 
 ---
 
@@ -230,7 +262,7 @@ Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Fi
 
 | Part | Status | Commit | How to test | Notes for next AI |
 |---|---|---|---|---|
-| ✅ P0 Scaffold + Auth | Done | (see git log: "P0: scaffold + auth + i18n + schema") | Run migrations+seed in Supabase SQL editor, `npm run dev`, sign up with a role → role-gated dashboard; switch EN/हिं/मरा → all UI re-renders; installable PWA manifest present | Next.js 15 + TS + Tailwind v4 + next-intl (cookie-based locale, no URL prefix). Design system ported 1:1 from approved mock into `app/globals.css` (tokens + .btn/.card/.empty/.hero classes) — **deviation:** shadcn/ui skipped for now (mock's custom design system covers it; add per-component later only if needed). Supabase: `lib/supabase/{client,server,middleware}.ts`, profile auto-created via `handle_new_user` trigger from signup metadata. RLS helpers `my_role()`/`my_district()`. Schema `supabase/migrations/0001_init.sql`, seed (18 diseases en/hi/mr + 15 MH villages) `supabase/seed.sql`. PWA: `public/manifest.json` + `public/sw.js` (shell cache stub — P1 adds Dexie queue). Role-gated nav in `components/shell/AppShell.tsx`. |
+| ✅ P0 Scaffold + Auth | Done | 1fbd647 "P0: scaffold + auth + i18n + schema" | Sign up with a role → role-gated dashboard; switch EN/हिं/मरा → all UI re-renders; PWA manifest installable; Supabase schema+seed applied (18 diseases en/hi/mr, 15 MH villages) | Next.js 15 + TS + Tailwind v4 + next-intl (cookie locale, no URL prefix). Design system from approved mock lives in `app/globals.css`. **Deviation:** shadcn/ui skipped (mock's design system covers it). Supabase clients in `lib/supabase/*`; profile auto-created via `handle_new_user` trigger; RLS helpers `my_role()`/`my_district()`. Schema `supabase/migrations/0001_init.sql` (NOTE: predates this doc's v2 — `devices`/`telemetry` tables for P9 to be added in a later migration, do NOT redesign 0001). PWA stub `public/sw.js` (P1 adds Dexie queue). Auth: mailer_autoconfirm=ON for dev. Role-gated nav in `components/shell/AppShell.tsx`. Deployed on Vercel (pashusetu-rho.vercel.app). |
 | ☐ P1 Report flow + offline | Not started | — | — | — |
 | ☐ P2 Triage engine | Not started | — | — | — |
 | ☐ P3 Officer dashboard | Not started | — | — | — |
@@ -239,7 +271,8 @@ Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Fi
 | ☐ P6 Case/lab/vaccination | Not started | — | — | — |
 | ☐ P7 WhatsApp/IVR channel | Not started | — | — | — |
 | ☐ P8 Dairy early-warning | Not started | — | — | — |
-| ☐ P9 Polish + demo assets | Not started | — | — | — |
+| ☐ P9 IoT telemetry + simulator | Not started | — | — | — |
+| ☐ P10 Polish + demo assets | Not started | — | — | — |
 
 *(Tick ✅ + Status=Done when a Part passes Accept. Use 🟡 in-progress.)*
 
@@ -249,7 +282,7 @@ Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Fi
 
 **60-sec pitch:** "126 cattle died across 25 Maharashtra districts in the 2022 LSD outbreak because no one connected the village reports in time. There's no 'ASHA worker' for animals. PashuSetu turns every farmer into a sensor — and goes one better: it reads the **milk**. A village's daily milk yield drops *before* FMD/LSD symptoms show, so we flag the field visit before anyone even calls. Farmers report offline or by voice in Marathi → explainable AI triage names the suspected disease → officials see a live heatmap — built to plug into Bharat Pashudhan and NADRES, not replace them."
 
-**Demo arc:** (1) **milk moment** — village yield dips on the dairy chart → auto "field-verify" flag, *before* any report exists (2) offline report on phone → syncs (3) triage returns FMD + reasons (4) officer dashboard alert + heatmap lights up (5) cluster detected (6) case → lab sample barcode → result → contained (7) Marathi voice/WhatsApp report lands live (8) forecast flags a high-risk block (9) cost/scalability line.
+**Demo arc:** (1) **milk moment** — village yield dips → auto "field-verify" flag before any report (2) **herd reports on itself** — simulator injects FMD → vitals diverge → auto-report + cluster alert, zero human input (3) offline report on phone → syncs (4) triage returns FMD + reasons (5) dashboard alert + heatmap lights up (6) case → lab sample → result → contained (7) Marathi voice/WhatsApp report lands live (8) forecast flags a high-risk block (9) cost/scalability line.
 
 **Pre-empt these questions:**
 - *"How is this different from NADRES/1962?"* → §1 table, live.
@@ -258,6 +291,7 @@ Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Fi
 - *"Where does the milk data come from?"* → Mahanand co-op & private dairies already weigh daily village collection; we read aggregate yield, nothing individually identifiable.
 - *"Data privacy?"* → location/phone only for area-alerting, anonymized on aggregate dashboards, DPDP Act 2023 aware.
 - *"Training data?"* → rule engine from public ICAR/FAO/NADRES fact sheets first; officer confirm/reject = labeling flywheel for future ML.
+- *"Isn't the IoT data fake?"* → the sensor layer is a **digital twin/emulator**: ingest, anomaly engine and alerting are production-identical, only the data source is simulated for the demo. Swap in real ear-tags/boluses (Allflex/SmaXtec or DIY ESP32+LoRa) publishing the same JSON = one config change. We never claim real hardware.
 
 **Business model:** Phase 1 — free pilot with Maharashtra Animal Husbandry Dept. Phase 2 — B2G SaaS per-district to other states. Phase 3 — B2B: insurers (verified claims), dairy co-ops (herd monitoring), pharma (demand forecasting). Cost: "₹0 infra during hackathon; paisa-range per report at scale."
 
@@ -272,4 +306,5 @@ Each Part = one AI session's whole task. Format: **Goal · Build · Accept · Fi
 | No real govt/dairy data access | Seed realistic Maharashtra data; still build CSV import + NADRS-format export for interop credibility |
 | AI triage judged as black box | Rule-based + explainable; framed as decision-support, never diagnosis |
 | Milk-signal judged as "unproven" | Show it as anomaly detection on a real, well-documented phenomenon (yield drop precedes FMD/LSD) — cite the mechanism, not a magic model |
+| Simulated IoT judged as "fake" | Present as digital-twin/emulator with production-identical pipeline; never claim real hardware; show the swap path (§9 Q&A) |
 | Scope creep | One Part at a time, enforced by §7/§8 |
