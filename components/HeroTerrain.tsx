@@ -63,9 +63,12 @@ export function HeroTerrain() {
       const W = r.width;
       const H = r.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const cx = W * 0.64;
-      const cy = H * 0.54;
-      const R = Math.min(W, H) * 0.42;
+      // phones: terrain centered in the upper half, full presence;
+      // desktop: offset right of the copy (as in the mock)
+      const narrow = W < 640;
+      const cx = narrow ? W * 0.5 : W * 0.64;
+      const cy = narrow ? H * 0.36 : H * 0.54;
+      const R = Math.min(W, H) * (narrow ? 0.52 : 0.42);
       const ry = t * 0.22;
       const rx = 0.62 + Math.sin(t * 0.18) * 0.1;
 

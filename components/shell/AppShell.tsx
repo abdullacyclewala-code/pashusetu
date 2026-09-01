@@ -199,50 +199,46 @@ export function AppShell({
 
       {/* ---- bottom tabs (mobile) ---- */}
       <nav className="fixed inset-x-0 bottom-0 z-[60] hidden border-t border-line bg-card pb-[env(safe-area-inset-bottom)] max-[880px]:block">
-        <div className="mx-auto flex h-[62px] max-w-[480px] items-center px-1">
-          {(() => {
-            const items = tabs.filter((n) => n.key !== "report");
-            const mid = Math.ceil(items.length / 2);
-            const Tab = (n: NavItem) => (
-              <Link
-                key={n.key}
-                href={n.href}
-                className={`relative flex flex-col items-center gap-[3px] px-2 py-[5px] font-mono text-[9.5px] font-semibold uppercase tracking-[0.04em] ${
-                  active === n.key ? "text-accent" : "text-mut2"
-                }`}
-              >
-                {active === n.key && (
-                  <span className="absolute -top-[9px] left-1/2 h-[2px] w-7 -translate-x-1/2 bg-accent" />
-                )}
-                <n.icon className="h-[21px] w-[21px]" />
-                {t(n.key === "dash" ? "nav.home" : `nav.${n.key}`)}
-              </Link>
-            );
-            if (!canReport)
-              return (
-                <div className="flex flex-1 items-center justify-around">
-                  {items.map(Tab)}
+        {(() => {
+          const items = tabs.filter((n) => n.key !== "report");
+          const Tab = (n: NavItem) => (
+            <Link
+              key={n.key}
+              href={n.href}
+              className={`relative flex h-full flex-col items-center justify-center gap-[3px] font-mono text-[9.5px] font-semibold uppercase tracking-[0.04em] ${
+                active === n.key ? "text-accent" : "text-mut2"
+              }`}
+            >
+              {active === n.key && (
+                <span className="absolute top-0 left-1/2 h-[2px] w-7 -translate-x-1/2 bg-accent" />
+              )}
+              <n.icon className="h-[21px] w-[21px]" />
+              {t(n.key === "dash" ? "nav.home" : `nav.${n.key}`)}
+            </Link>
+          );
+          const mid = Math.ceil(items.length / 2);
+          const cols = canReport ? items.length + 1 : items.length;
+          return (
+            <div
+              className="mx-auto grid h-[62px] max-w-[480px]"
+              style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+            >
+              {items.slice(0, canReport ? mid : items.length).map(Tab)}
+              {canReport && (
+                <div className="relative flex items-center justify-center">
+                  <Link
+                    href="/dashboard/report"
+                    aria-label={t("nav.report")}
+                    className="absolute -top-[18px] grid h-[52px] w-[52px] place-items-center rounded-full border-4 border-card bg-accent text-white shadow-[0_3px_10px_rgba(168,67,31,0.3)]"
+                  >
+                    <PlusIcon className="h-[22px] w-[22px]" />
+                  </Link>
                 </div>
-              );
-            return (
-              <>
-                <div className="flex flex-1 items-center justify-evenly">
-                  {items.slice(0, mid).map(Tab)}
-                </div>
-                <Link
-                  href="/dashboard/report"
-                  aria-label={t("nav.report")}
-                  className="-mt-6 grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full border-4 border-card bg-accent text-white shadow-[0_4px_12px_rgba(168,67,31,0.35)]"
-                >
-                  <PlusIcon className="h-[22px] w-[22px]" />
-                </Link>
-                <div className="flex flex-1 items-center justify-evenly">
-                  {items.slice(mid).map(Tab)}
-                </div>
-              </>
-            );
-          })()}
-        </div>
+              )}
+              {canReport && items.slice(mid).map(Tab)}
+            </div>
+          );
+        })()}
       </nav>
     </div>
   );

@@ -217,11 +217,12 @@ a:focus-visible {
   gap: 14px;
   padding: 80px 24px;
   text-align: center;
-  border: 1.5px dashed var(--line);
+  border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--card);
   color: var(--mut);
   margin-top: 28px;
+  box-shadow: 0 1px 2px rgba(30, 22, 12, 0.03);
 }
 .empty .e-ico {
   width: 56px;
@@ -393,48 +394,37 @@ a:focus-visible {
   text-transform: uppercase;
 }
 
-/* legibility scrim between the terrain canvas and the hero copy */
-.hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(
-    100deg,
-    rgba(40, 32, 22, 0.88) 0%,
-    rgba(40, 32, 22, 0.55) 38%,
-    rgba(40, 32, 22, 0) 62%
-  );
-}
-
 /* ============================================================
-   MOBILE POLISH (≤640px) — this app is mobile-first for farmers
+   MOBILE (≤640px) — terrain stays the hero: full brightness up
+   top, copy anchored at the bottom over a soft fade only.
    ============================================================ */
 @media (max-width: 640px) {
   .hero {
-    min-height: 0;
+    min-height: 440px;
     border-radius: 16px;
+    align-items: flex-end;
   }
-  .hero canvas {
-    opacity: 0.6;
-  }
-  .hero::before {
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
     background: linear-gradient(
       180deg,
-      rgba(40, 32, 22, 0.35) 0%,
-      rgba(40, 32, 22, 0.72) 70%,
-      rgba(40, 32, 22, 0.85) 100%
+      rgba(40, 32, 22, 0) 42%,
+      rgba(40, 32, 22, 0.62) 72%,
+      rgba(40, 32, 22, 0.9) 100%
     );
   }
   .hero .h-in {
     max-width: none;
     width: 100%;
-    padding: 26px 20px 54px;
+    padding: 24px 20px 46px;
   }
   .hero h1 {
-    font-size: 27px;
-    margin-top: 14px;
+    font-size: 28px;
+    margin-top: 12px;
   }
   .hero p {
     font-size: 13.5px;
@@ -449,7 +439,6 @@ a:focus-visible {
   }
   .hero .h-cap {
     bottom: 12px;
-    left: 20px;
   }
   .empty {
     padding: 44px 20px;
