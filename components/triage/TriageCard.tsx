@@ -16,6 +16,14 @@ function candidateName(c: Candidate, locale: string): string {
   return c.name_en;
 }
 
+/**
+ * Explainable triage result with a strict reading order:
+ *   1. verdict   — suspected disease + urgency + confidence
+ *   2. action    — "what to do now" advisory (the part a farmer needs)
+ *   3. evidence  — matched signs + reasons for the top candidate
+ *   4. appendix  — other possibilities, collapsed by default
+ *   5. hard rule — disclaimer, always visible
+ */
 export function TriageCard({
   candidates,
   urgency,
@@ -31,109 +39,151 @@ export function TriageCard({
   const locale = useLocale();
   const best = candidates[0];
   const style = URGENCY_STYLE[urgency];
+  const others = candidates.slice(1);
 
-  // future-proof: KB symptom keys not yet translated fall back to a
-  // readable label instead of throwing MISSING_MESSAGE
+  // KB symptom keys not yet translated fall back to a readable label
   const symptomLabel = (s: string) =>
     t.has(`symptoms.${s}`) ? t(`symptoms.${s}`) : s.replace(/_/g, " ");
 
+  const advisoryLines = advisory
+    ? advisory
+        .split("\n")
+        .slice(compact ? 0 : 1, compact ? 4 : -1)
+        .filter((l) => l.trim())
+    : [];
+
   return (
     <div className="card overflow-hidden">
-      {/* header: urgency + top suspicion */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-line-2 px-5 py-4">
+      {/* ---- 1 · verdict ---- */}
+      <div className="flex items-start gap-3 px-5 pt-4 pb-4">
+        <div className="min-w-0">
+          {best ? (
+            <>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("triage.suspected")}
+              </div>
+              <div className="mt-0.5 font-serif text-[21px] font-semibold leading-tight">
+                {candidateName(best, locale)}
+              </div>
+              <div className="mt-1 text-[12px] font-semibold text-mut">
+                {t("triage.confidence")} · {Math.round(best.confidence * 100)}%
+              </div>
+            </>
+          ) : (
+            <p className="pt-1 text-[13.5px] leading-relaxed text-mut">
+              {t("triage.noCandidates")}
+            </p>
+          )}
+        </div>
         <span
-          className="rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em]"
+          className="ml-auto shrink-0 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em]"
           style={{ background: style.bg, color: style.fg }}
         >
           {t(`triage.urgency.${urgency}`)}
         </span>
-        {best ? (
-          <div className="min-w-0">
-            <div className="text-[15px] font-bold">
-              {t("triage.suspected")}: {candidateName(best, locale)}
-            </div>
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-mut">
-              {t("triage.confidence")} {Math.round(best.confidence * 100)}%
-            </div>
-          </div>
-        ) : (
-          <div className="text-[13.5px] text-mut">{t("triage.noCandidates")}</div>
-        )}
       </div>
 
-      {/* candidates with reasons — the explainability core */}
-      {best && (
-        <div className="flex flex-col gap-4 px-5 py-4">
-          {(compact ? candidates.slice(0, 1) : candidates).map((c, i) => (
-            <div key={c.code}>
-              <div className="mb-1 flex items-center gap-3">
-                <span className="text-[13.5px] font-semibold">
-                  {i + 1}. {candidateName(c, locale)}
-                </span>
-                <span className="text-[11.5px] font-semibold text-mut">
-                  {Math.round(c.confidence * 100)}%
-                </span>
-              </div>
-              <div className="mb-2 h-[5px] overflow-hidden rounded-full bg-line-2">
-                <div
-                  className="h-full rounded-full bg-sage"
-                  style={{ width: `${Math.max(4, c.confidence * 100)}%` }}
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {c.matched.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full bg-sage-soft px-2.5 py-1 text-[11.5px] font-medium text-sage"
-                  >
-                    ✓ {symptomLabel(s)}
-                  </span>
-                ))}
-                {!compact &&
-                  c.missed.map((s) => (
-                    <span
-                      key={s}
-                      className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-mut2"
-                    >
-                      {symptomLabel(s)}?
-                    </span>
-                  ))}
-              </div>
-              {!compact && (
-                <ul className="mt-2 flex flex-col gap-0.5">
-                  {c.reasons.map((r, j) => (
-                    <li key={j} className="text-[12.5px] text-mut">
-                      · {reasonText(r, t)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* advisory */}
-      {advisory && (
-        <div className="border-t border-line-2 bg-paper/50 px-5 py-4">
-          <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+      {/* ---- 2 · what to do now ---- */}
+      {advisoryLines.length > 0 && (
+        <div className="mx-5 mb-4 rounded-2xl bg-gold-soft px-4 py-3.5">
+          <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8A6D1F]">
             {t("triage.advisoryTitle")}
           </div>
-          <ul className="flex flex-col gap-1">
-            {advisory
-              .split("\n")
-              .slice(compact ? 0 : 1, compact ? 4 : -1)
-              .map((line, i) => (
-                <li key={i} className="text-[13px] leading-relaxed text-ink-2">
-                  {line}
-                </li>
-              ))}
+          <ul className="flex flex-col gap-1.5">
+            {advisoryLines.map((line, i) => (
+              <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-ink-2">
+                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#B98523]" />
+                {line.replace(/^[-•·]\s*/, "")}
+              </li>
+            ))}
           </ul>
         </div>
       )}
 
-      {/* hard rule: disclaimer, always */}
-      <div className="border-t border-line-2 px-5 py-3">
+      {/* ---- 3 · why this result ---- */}
+      {best && (
+        <div className="border-t border-line-2 px-5 py-4">
+          <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+            {t("triage.whyTitle")}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {best.matched.map((s) => (
+              <span
+                key={s}
+                className="rounded-full bg-sage-soft px-2.5 py-1 text-[11.5px] font-medium text-sage"
+              >
+                ✓ {symptomLabel(s)}
+              </span>
+            ))}
+            {!compact &&
+              best.missed.map((s) => (
+                <span
+                  key={s}
+                  className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-mut2"
+                >
+                  {symptomLabel(s)}?
+                </span>
+              ))}
+          </div>
+          {!compact && best.reasons.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1">
+              {best.reasons.map((r, j) => (
+                <li key={j} className="flex gap-2 text-[12.5px] leading-relaxed text-mut">
+                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-mut2" />
+                  {reasonText(r, t)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* ---- 4 · other possibilities (collapsed) ---- */}
+      {!compact && others.length > 0 && (
+        <details className="group border-t border-line-2">
+          <summary className="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-[12.5px] font-semibold text-mut transition hover:text-ink [&::-webkit-details-marker]:hidden">
+            {t("triage.othersTitle")}
+            <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-line-2 px-1 text-[10.5px] font-bold text-mut">
+              {others.length}
+            </span>
+            <span className="ml-auto text-[10px] transition group-open:rotate-180">
+              ▼
+            </span>
+          </summary>
+          <div className="flex flex-col gap-4 px-5 pb-4">
+            {others.map((c) => {
+              const total = c.matched.length + c.missed.length;
+              return (
+                <div key={c.code}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[13px] font-semibold">
+                      {candidateName(c, locale)}
+                    </span>
+                    <span className="ml-auto text-[11.5px] font-semibold text-mut">
+                      {Math.round(c.confidence * 100)}%
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line-2">
+                    <div
+                      className="h-full rounded-full bg-mut2"
+                      style={{ width: `${Math.max(4, c.confidence * 100)}%` }}
+                    />
+                  </div>
+                  <div className="mt-1.5 text-[12px] text-mut">
+                    {t("triage.reasons.symptom_match", {
+                      matched: c.matched.length,
+                      total,
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      )}
+
+      {/* ---- 5 · hard rule: disclaimer, always ---- */}
+      <div className="border-t border-line-2 bg-paper/60 px-5 py-3">
         <p className="text-[11.5px] leading-relaxed text-mut">
           ⚠ {t("triage.disclaimer")}
         </p>

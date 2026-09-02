@@ -10,23 +10,22 @@ export default async function ReportPage() {
   const format = await getFormatter();
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { data: claims } = await supabase.auth.getClaims();
+  const uid = claims?.claims?.sub;
+  if (!uid) redirect("/login");
 
   const [{ data: profile }, { data: animals }, { data: recent }] =
     await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single<Profile>(),
+      supabase.from("profiles").select("*").eq("id", uid).single<Profile>(),
       supabase
         .from("animals")
         .select("id, species, tag_id, breed")
-        .eq("owner_id", user.id)
+        .eq("owner_id", uid)
         .order("created_at", { ascending: false }),
       supabase
         .from("reports")
         .select("id, species, sick_count, dead_count, village, created_at")
-        .eq("reporter_id", user.id)
+        .eq("reporter_id", uid)
         .order("created_at", { ascending: false })
         .limit(5),
     ]);

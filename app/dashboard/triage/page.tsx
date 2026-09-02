@@ -21,17 +21,16 @@ export default async function TriagePage() {
   const t = await getTranslations();
   const format = await getFormatter();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { data: claims } = await supabase.auth.getClaims();
+  const uid = claims?.claims?.sub;
+  if (!uid) redirect("/login");
 
   const { data: reports } = await supabase
     .from("reports")
     .select(
       "id, species, sick_count, dead_count, village, created_at, status, triage_results(disease_candidates, confidence, urgency, advisory_text, notifiable_flag, source)"
     )
-    .eq("reporter_id", user.id)
+    .eq("reporter_id", uid)
     .order("created_at", { ascending: false })
     .limit(20)
     .returns<ReportWithTriage[]>();
@@ -60,18 +59,20 @@ export default async function TriagePage() {
             );
             return (
               <div key={r.id}>
-                <div className="mb-2 flex items-center gap-2 px-1">
-                  <span className="text-lg">
+                <div className="mb-2 flex items-center gap-2.5 px-1">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sage-soft text-base">
                     {SPECIES.find((s) => s.key === r.species)?.emoji ?? "🐾"}
                   </span>
-                  <span className="text-[13px] font-semibold">
-                    {t(`species.${r.species}`)}
-                  </span>
-                  <span className="text-[12.5px] text-mut">
-                    · {t("report.sick")} {r.sick_count} · {t("report.dead")}{" "}
-                    {r.dead_count}
-                  </span>
-                  <span className="ml-auto text-[11.5px] font-medium text-mut2">
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-semibold leading-tight">
+                      {t(`species.${r.species}`)}
+                    </div>
+                    <div className="text-[11.5px] text-mut">
+                      {t("report.sick")} {r.sick_count} · {t("report.dead")}{" "}
+                      {r.dead_count}
+                    </div>
+                  </div>
+                  <span className="ml-auto shrink-0 text-[11.5px] font-medium text-mut2">
                     {r.village ? `${r.village} · ` : ""}
                     {format.dateTime(new Date(r.created_at), {
                       day: "numeric",

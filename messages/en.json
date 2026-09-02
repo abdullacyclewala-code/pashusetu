@@ -98,9 +98,8 @@
     "quickTriageB": "Explainable AI screening",
     "quickCasesT": "Review cases",
     "quickCasesB": "District case queue",
-    "mapTitle": "Live surveillance network",
-    "mapChip": "Maharashtra",
-    "mapCaption": "15 pilot villages · Pune–Nashik belt"
+    "mapCaption": "15 pilot villages · Pune–Nashik belt",
+    "heroLine": "One report today can protect a whole herd tomorrow."
   },
   "report": {
     "eyebrow": "Field report",
@@ -185,7 +184,9 @@
       "nearby": "{count, plural, one {# similar report} other {# similar reports}} in your district in the last 14 days",
       "zoonotic": "Can spread to humans — handle with care",
       "notifiable": "Notifiable disease — authorities must be informed"
-    }
+    },
+    "whyTitle": "Why this result",
+    "othersTitle": "Other possibilities"
   },
   "alerts": {
     "eyebrow": "Early warning",

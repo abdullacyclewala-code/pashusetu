@@ -6,15 +6,14 @@ import { HerdClient, type Animal } from "./HerdClient";
 export default async function HerdPage() {
   const t = await getTranslations("herd");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { data: claims } = await supabase.auth.getClaims();
+  const uid = claims?.claims?.sub;
+  if (!uid) redirect("/login");
 
   const { data: animals } = await supabase
     .from("animals")
     .select("id, species, tag_id, breed, dob, created_at")
-    .eq("owner_id", user.id)
+    .eq("owner_id", uid)
     .order("created_at", { ascending: false })
     .returns<Animal[]>();
 
@@ -23,7 +22,7 @@ export default async function HerdPage() {
       <div className="eyebrow">{t("eyebrow")}</div>
       <div className="h1">{t("heading")}</div>
       <p className="lede">{t("lede")}</p>
-      <HerdClient initialAnimals={animals ?? []} ownerId={user.id} />
+      <HerdClient initialAnimals={animals ?? []} ownerId={uid} />
     </section>
   );
 }

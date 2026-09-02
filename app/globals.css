@@ -406,9 +406,76 @@ a:focus-visible {
   align-self: stretch;
   min-height: 300px;
 }
-.h-map svg {
+
+/* ---- 3D scene: tilted floating map plane + radar sweep ---- */
+.ps-scene {
   position: absolute;
   inset: 0;
+  perspective: 1100px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.ps-floor {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 72%;
+  height: 38%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(243, 201, 107, 0.09),
+    transparent 65%
+  );
+  filter: blur(8px);
+}
+.ps-plane {
+  position: relative;
+  width: 86%;
+  max-width: 560px;
+  aspect-ratio: 800 / 659;
+  transform-style: preserve-3d;
+  animation: psFloat 8s ease-in-out infinite;
+}
+@keyframes psFloat {
+  0%,
+  100% {
+    transform: rotateX(52deg) rotateZ(-14deg) translateZ(0);
+  }
+  50% {
+    transform: rotateX(52deg) rotateZ(-14deg) translateZ(26px);
+  }
+}
+.ps-plane svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ps-sweep {
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(200, 214, 156, 0) 0deg,
+    rgba(200, 214, 156, 0) 308deg,
+    rgba(200, 214, 156, 0.06) 340deg,
+    rgba(236, 244, 204, 0.17) 357deg,
+    rgba(200, 214, 156, 0) 360deg
+  );
+  animation: psSweep 7s linear infinite;
+}
+@keyframes psSweep {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.h-map svg {
   width: 100%;
   height: 100%;
 }
@@ -470,10 +537,28 @@ a:focus-visible {
   .ps-ring,
   .ps-arc,
   .ps-dot,
+  .ps-plane,
+  .ps-sweep,
   .page-in,
   .skel {
     animation: none;
   }
+  .ps-plane {
+    transform: rotateX(52deg) rotateZ(-14deg);
+  }
+}
+
+/* dashboard hero variant — greeting inside the dark panel */
+.hero-dash {
+  min-height: 380px;
+}
+.hero-dash h1 {
+  font-size: clamp(26px, 3vw, 38px);
+}
+.hero .chip {
+  background: rgba(255, 253, 247, 0.06);
+  border-color: rgba(236, 228, 210, 0.22);
+  color: #d9d0bb;
 }
 
 /* ============================================================

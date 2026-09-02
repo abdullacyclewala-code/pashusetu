@@ -135,22 +135,33 @@ export default async function DashboardPage() {
 
   return (
     <section className="page-in flex flex-col gap-6">
-      {/* ---- greeting ---- */}
-      <header>
-        <p className="text-[13px] font-semibold text-mut">
-          {format.dateTime(new Date(), { dateStyle: "full" })}
-        </p>
-        <h1 className="h1">{t(greetingKey(), { name: profile?.name ?? "" })}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="chip">{tr(`roles.${role}`)}</span>
-          {place && (
-            <span className="chip">
-              <PinIcon className="h-3.5 w-3.5" />
-              {place}
-            </span>
+      {/* ---- hero: greeting + live 3D network map ---- */}
+      <div className="hero hero-dash">
+        <div className="h-in">
+          <div className="h-kicker">
+            {format.dateTime(new Date(), { dateStyle: "full" })}
+          </div>
+          <h1>{t(greetingKey(), { name: profile?.name ?? "" })}</h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="chip">{tr(`roles.${role}`)}</span>
+            {place && (
+              <span className="chip">
+                <PinIcon className="h-3.5 w-3.5" />
+                {place}
+              </span>
+            )}
+          </div>
+          <p>{t("heroLine")}</p>
+          {canReport && (
+            <div className="h-cta">
+              <Link href="/dashboard/report" className="btn btn-solid">
+                {t("quickReportT")}
+              </Link>
+            </div>
           )}
         </div>
-      </header>
+        <HeroMap caption={t("mapCaption")} />
+      </div>
 
       {/* ---- live stats ---- */}
       <div className="grid grid-cols-3 gap-3 max-[740px]:grid-cols-1">
@@ -204,17 +215,6 @@ export default async function DashboardPage() {
               </span>
             </Link>
           ))}
-        </div>
-      </div>
-
-      {/* ---- live network map ---- */}
-      <div className="card overflow-hidden">
-        <div className="card-head !border-b-0">
-          <h3>{t("mapTitle")}</h3>
-          <span className="chip ml-auto">{t("mapChip")}</span>
-        </div>
-        <div className="relative h-[320px] bg-night max-[740px]:h-[250px]">
-          <HeroMap caption={t("mapCaption")} />
         </div>
       </div>
     </section>
