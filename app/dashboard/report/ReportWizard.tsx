@@ -9,6 +9,8 @@ import { syncPendingReports } from "@/lib/offline/sync";
 import { compressImage } from "@/lib/report/image";
 import { SPECIES, SYMPTOM_GROUPS } from "@/lib/report/constants";
 import { TriageCard } from "@/components/triage/TriageCard";
+import { SpeciesIcon } from "@/components/SpeciesIcon";
+import { CheckIcon, ClockIcon, CameraIcon, PinIcon } from "@/components/icons";
 import type { TriageRow } from "@/lib/triage/types";
 import type { Profile } from "@/lib/types";
 
@@ -206,7 +208,11 @@ export function ReportWizard({
               done === "synced" ? "bg-sage-soft" : "bg-[#FBF3DC]"
             }`}
           >
-            {done === "synced" ? "✓" : "⏳"}
+            {done === "synced" ? (
+              <CheckIcon className="h-7 w-7 text-sage" />
+            ) : (
+              <ClockIcon className="h-7 w-7 text-[#8A6D1F]" />
+            )}
           </span>
           <div className="font-serif text-xl font-semibold">
             {done === "synced" ? t("report.doneSynced") : t("report.doneQueued")}
@@ -252,6 +258,7 @@ export function ReportWizard({
               candidates={triage.disease_candidates}
               urgency={triage.urgency}
               advisory={triage.advisory_text}
+              species={form.species || undefined}
             />
           ) : (
             <div className="card flex items-center gap-3 px-5 py-4 text-[13.5px] text-mut">
@@ -299,7 +306,9 @@ export function ReportWizard({
                       : "border-line bg-card hover:border-mut2"
                   }`}
                 >
-                  <span className="text-3xl">{s.emoji}</span>
+                  <span className={form.species === s.key ? "text-accent" : "text-ink-2"}>
+                    <SpeciesIcon species={s.key} className="h-9 w-9" />
+                  </span>
                   <span className="text-[12.5px] font-semibold">
                     {t(`species.${s.key}`)}
                   </span>
@@ -429,7 +438,9 @@ export function ReportWizard({
               </div>
             ) : (
               <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border border-line bg-paper/60 p-8 text-center transition hover:border-mut2">
-                <span className="text-3xl">📷</span>
+                <span className="text-mut">
+                  <CameraIcon className="h-9 w-9" />
+                </span>
                 <span className="text-[13.5px] font-semibold">
                   {t("report.addPhoto")}
                 </span>
@@ -455,11 +466,19 @@ export function ReportWizard({
                 disabled={gpsState === "loading"}
                 className={`btn ${form.gps ? "btn-line" : "btn-dark"}`}
               >
-                {gpsState === "loading"
-                  ? t("common.working")
-                  : form.gps
-                    ? `✓ ${t("report.gpsCaptured")}`
-                    : `📍 ${t("report.useGps")}`}
+                {gpsState === "loading" ? (
+                  t("common.working")
+                ) : form.gps ? (
+                  <>
+                    <CheckIcon className="h-4 w-4" />
+                    {t("report.gpsCaptured")}
+                  </>
+                ) : (
+                  <>
+                    <PinIcon className="h-4 w-4" />
+                    {t("report.useGps")}
+                  </>
+                )}
               </button>
               {gpsState === "error" && (
                 <p className="rounded-lg bg-[#FBEDE7] px-3 py-2 text-[13px] text-accent">
@@ -515,7 +534,6 @@ export function ReportWizard({
                 </div>
                 <div className="flex flex-col gap-1 text-[13.5px]">
                   <span>
-                    {SPECIES.find((s) => s.key === form.species)?.emoji}{" "}
                     <b>{form.species && t(`species.${form.species}`)}</b>
                     {" · "}
                     {t("report.sick")} {form.sickCount} · {t("report.dead")}{" "}
@@ -533,8 +551,8 @@ export function ReportWizard({
                     {[form.village, form.taluka, form.district]
                       .filter(Boolean)
                       .join(", ")}
-                    {form.gps ? " · GPS ✓" : ""}
-                    {form.photo ? " · 📷" : ""}
+                    {form.gps ? ` · ${t("report.gpsCaptured")}` : ""}
+                    {form.photo ? ` · ${t("report.photoAttached")}` : ""}
                   </span>
                 </div>
               </div>

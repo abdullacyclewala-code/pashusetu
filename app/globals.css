@@ -552,3 +552,29 @@ a:focus-visible {
     padding: 13px 22px;
   }
 }
+
+/* indeterminate progress bar (triage pending) */
+.progress-run {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.progress-run::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 38%;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: progressRun 1.6s ease-in-out infinite;
+}
+@keyframes progressRun {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(290%);
+  }
+}

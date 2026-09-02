@@ -1,7 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Candidate, Reason, Urgency } from "@/lib/triage/types";
+import { SpeciesIcon } from "@/components/SpeciesIcon";
+import {
+  InfoIcon,
+  CheckCircleIcon,
+  ClipboardIcon,
+  FileChartIcon,
+  AlertTriangleIcon,
+} from "@/components/icons";
 
 const URGENCY_STYLE: Record<
   Urgency,
@@ -19,7 +28,7 @@ function candidateName(c: Candidate, locale: string): string {
   return c.name_en;
 }
 
-/** Circular confidence gauge — the card's visual anchor. */
+/** Circular confidence gauge. */
 function ConfidenceRing({
   pct,
   color,
@@ -29,35 +38,35 @@ function ConfidenceRing({
   color: string;
   label: string;
 }) {
-  const r = 24;
+  const r = 34;
   const c = 2 * Math.PI * r;
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1">
-      <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={r} stroke="var(--line-2)" strokeWidth="6" fill="none" />
+    <div className="flex shrink-0 flex-col items-center gap-1.5">
+      <svg width="92" height="92" viewBox="0 0 92 92">
+        <circle cx="46" cy="46" r={r} stroke="var(--line-2)" strokeWidth="7" fill="none" />
         <circle
-          cx="32"
-          cy="32"
+          cx="46"
+          cy="46"
           r={r}
           stroke={color}
-          strokeWidth="6"
+          strokeWidth="7"
           fill="none"
           strokeLinecap="round"
-          strokeDasharray={`${(c * pct).toFixed(1)} ${c.toFixed(1)}`}
-          transform="rotate(-90 32 32)"
+          strokeDasharray={`${(c * Math.max(0.02, pct)).toFixed(1)} ${c.toFixed(1)}`}
+          transform="rotate(-90 46 46)"
         />
         <text
-          x="32"
-          y="37"
+          x="46"
+          y="53"
           textAnchor="middle"
-          fontSize="14.5"
+          fontSize="21"
           fontWeight="700"
           fill="var(--ink)"
         >
           {Math.round(pct * 100)}%
         </text>
       </svg>
-      <span className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-mut2">
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-mut">
         {label}
       </span>
     </div>
@@ -65,28 +74,35 @@ function ConfidenceRing({
 }
 
 /**
- * Triage result as a "diagnosis ticket":
- *   urgency banner → verdict + confidence gauge → matched signs →
- *   numbered what-to-do steps → full analysis (collapsed) → disclaimer.
+ * Triage result presented as a clinical report, not a data dump:
+ *   1. verdict card  — urgency banner · suspected disease · sign-match
+ *                      summary · matching signs · confidence gauge
+ *   2. action card   — numbered what-to-do steps
+ *   3. analysis card — collapsed full reasoning + other possibilities
+ *   4. disclaimer strip — always
  */
 export function TriageCard({
   candidates,
   urgency,
   advisory,
   meta,
+  species,
   compact = false,
 }: {
   candidates: Candidate[];
   urgency: Urgency;
   advisory: string | null;
   meta?: string;
+  species?: string;
   compact?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale();
+  const [allSigns, setAllSigns] = useState(false);
   const best = candidates[0];
   const style = URGENCY_STYLE[urgency];
   const others = candidates.slice(1);
+  const totalSigns = best ? best.matched.length + best.missed.length : 0;
 
   // KB symptom keys not yet translated fall back to a readable label
   const symptomLabel = (s: string) =>
@@ -101,109 +117,196 @@ export function TriageCard({
     : [];
 
   return (
-    <div className="card overflow-hidden">
-      {/* ---- urgency banner ---- */}
-      <div
-        className="flex items-center gap-2.5 px-5 py-2.5"
-        style={{ background: style.bg }}
-      >
-        <span
-          className="h-2 w-2 shrink-0 rounded-full"
-          style={{ background: style.fg }}
-        />
-        <span
-          className="text-[11.5px] font-bold uppercase tracking-[0.08em]"
-          style={{ color: style.fg }}
+    <div className="flex flex-col gap-2.5">
+      {/* ================= 1 · VERDICT ================= */}
+      <div className="card overflow-hidden">
+        <div
+          className="flex items-center gap-2.5 px-5 py-2.5"
+          style={{ background: style.bg }}
         >
-          {t(`triage.urgency.${urgency}`)}
-        </span>
-        {meta && (
           <span
-            className="ml-auto truncate text-[11.5px] font-semibold"
-            style={{ color: style.fg, opacity: 0.75 }}
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ background: style.fg }}
+          />
+          <span
+            className="text-[11.5px] font-bold uppercase tracking-[0.08em]"
+            style={{ color: style.fg }}
           >
-            {meta}
+            {t(`triage.urgency.${urgency}`)}
           </span>
-        )}
-      </div>
+          {meta && (
+            <span
+              className="ml-auto flex min-w-0 items-center gap-2 text-[11.5px] font-semibold"
+              style={{ color: style.fg, opacity: 0.8 }}
+            >
+              {species && <SpeciesIcon species={species} className="h-4 w-4 shrink-0" />}
+              <span className="truncate">{meta}</span>
+            </span>
+          )}
+        </div>
 
-      {/* ---- verdict ---- */}
-      <div className="flex items-center gap-4 px-5 pt-4 pb-3">
         {best ? (
-          <>
-            <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-[1.5fr_1fr] max-[760px]:grid-cols-1">
+            {/* left: the finding */}
+            <div className="px-6 py-5 max-[760px]:px-5">
               <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-                {t("triage.suspected")}
+                {t("triage.suspectedDisease")}
               </div>
-              <div className="mt-1 font-serif text-[22px] font-semibold leading-tight">
+              <h3 className="mt-1.5 font-serif text-[25px] font-semibold leading-tight">
                 {candidateName(best, locale)}
+              </h3>
+
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-line-2 bg-paper/70 px-3.5 py-3">
+                <InfoIcon className="mt-px h-4 w-4 shrink-0 text-accent" />
+                <p className="text-[13px] leading-relaxed text-ink-2">
+                  {t("triage.matchNote", {
+                    matched: best.matched.length,
+                    total: totalSigns,
+                  })}
+                </p>
               </div>
-              {/* matched signs — the proof, right under the name */}
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+
+              <div className="mt-4 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("triage.matchingSigns")}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {best.matched.map((s) => (
                   <span
                     key={s}
-                    className="rounded-full bg-sage-soft px-2.5 py-1 text-[11.5px] font-semibold text-sage"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-sage-soft px-3 py-1.5 text-[12px] font-semibold text-sage"
                   >
-                    ✓ {symptomLabel(s)}
+                    <CheckCircleIcon className="h-3.5 w-3.5" />
+                    {symptomLabel(s)}
                   </span>
                 ))}
+                {allSigns &&
+                  best.missed.map((s) => (
+                    <span
+                      key={s}
+                      className="rounded-full border border-line px-3 py-1.5 text-[12px] text-mut"
+                    >
+                      {symptomLabel(s)}
+                    </span>
+                  ))}
               </div>
+              {best.missed.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAllSigns((v) => !v)}
+                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent"
+                >
+                  {allSigns
+                    ? t("triage.hideSigns")
+                    : t("triage.viewAllSigns", { total: totalSigns })}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`h-3 w-3 transition ${allSigns ? "rotate-180" : ""}`}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              )}
             </div>
-            <ConfidenceRing
-              pct={best.confidence}
-              color={style.ring}
-              label={t("triage.confidence")}
-            />
-          </>
+
+            {/* right: confidence */}
+            <div className="flex flex-col items-center justify-center gap-3.5 border-l border-line-2 px-6 py-5 max-[760px]:border-l-0 max-[760px]:border-t max-[760px]:px-5">
+              <ConfidenceRing
+                pct={best.confidence}
+                color={style.ring}
+                label={t("triage.confidence")}
+              />
+              <p className="max-w-[240px] rounded-xl bg-gold-soft/60 px-3.5 py-2.5 text-center text-[12px] leading-relaxed text-ink-2">
+                {t("triage.confNote")}{" "}
+                <span className="font-bold text-accent">
+                  {t("triage.notADiagnosis")}
+                </span>
+              </p>
+            </div>
+          </div>
         ) : (
-          <p className="py-1 text-[13.5px] leading-relaxed text-mut">
-            {t("triage.noCandidates")}
-          </p>
+          <div className="px-6 py-5 max-[760px]:px-5">
+            <p className="text-[13.5px] leading-relaxed text-mut">
+              {t("triage.noCandidates")}
+            </p>
+          </div>
         )}
       </div>
 
-      {/* ---- what to do now: numbered steps ---- */}
+      {/* ================= 2 · WHAT TO DO NOW ================= */}
       {advisoryLines.length > 0 && (
-        <div className="px-5 pb-4 pt-1">
-          <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8A6D1F]">
-            {t("triage.advisoryTitle")}
+        <div className="card overflow-hidden">
+          <div className="grid grid-cols-[1fr_230px] max-[760px]:grid-cols-1">
+            <div className="px-6 py-5 max-[760px]:px-5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold-soft text-[#8A6D1F]">
+                  <ClipboardIcon className="h-[18px] w-[18px]" />
+                </span>
+                <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">
+                  {t("triage.advisoryTitle")}
+                </span>
+              </div>
+              <ol className="mt-4 flex flex-col gap-2.5">
+                {advisoryLines.map((line, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-gold-soft text-[12px] font-bold text-[#8A6D1F]">
+                      {i + 1}
+                    </span>
+                    <span className="text-[13.5px] leading-relaxed text-ink-2">
+                      {line}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {species && (
+              <div className="hidden flex-col items-center justify-center gap-3.5 border-l border-line-2 px-6 py-5 text-center min-[761px]:flex">
+                <span className="grid h-24 w-24 place-items-center rounded-full bg-accent-soft/60 text-ink-2">
+                  <SpeciesIcon species={species} className="h-12 w-12" />
+                </span>
+                <p className="max-w-[180px] text-[12.5px] leading-relaxed text-mut">
+                  {t("triage.actionNote")}
+                </p>
+              </div>
+            )}
           </div>
-          <ol className="flex flex-col gap-2">
-            {advisoryLines.map((line, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold-soft text-[11.5px] font-bold text-[#8A6D1F]">
-                  {i + 1}
-                </span>
-                <span className="text-[13.5px] leading-relaxed text-ink-2">
-                  {line}
-                </span>
-              </li>
-            ))}
-          </ol>
         </div>
       )}
 
-      {/* ---- full analysis, collapsed ---- */}
+      {/* ================= 3 · FULL ANALYSIS ================= */}
       {!compact && best && (
-        <details className="group border-t border-line-2">
-          <summary className="flex cursor-pointer select-none items-center gap-2 px-5 py-3.5 text-[13px] font-semibold text-accent transition hover:bg-paper/60 [&::-webkit-details-marker]:hidden">
-            {t("triage.fullAnalysis")}
+        <details className="card group overflow-hidden">
+          <summary className="flex cursor-pointer select-none items-center gap-3.5 px-6 py-4 transition hover:bg-paper/60 max-[760px]:px-5 [&::-webkit-details-marker]:hidden">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sage-soft text-sage">
+              <FileChartIcon className="h-[18px] w-[18px]" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[14.5px] font-semibold leading-snug">
+                {t("triage.fullAnalysis")}
+              </span>
+              <span className="block truncate text-[12px] text-mut">
+                {t("triage.analysisSub")}
+              </span>
+            </span>
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.4"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="ml-auto h-3.5 w-3.5 transition group-open:rotate-180"
+              className="ml-auto h-4 w-4 shrink-0 text-mut2 transition group-open:rotate-90"
             >
-              <path d="M6 9l6 6 6-6" />
+              <path d="M9 6l6 6-6 6" />
             </svg>
           </summary>
 
-          <div className="flex flex-col gap-5 px-5 pb-5 pt-1">
-            {/* why this result */}
+          <div className="flex flex-col gap-5 border-t border-line-2 px-6 py-5 max-[760px]:px-5">
+            {/* reasoning */}
             <div>
               <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
                 {t("triage.whyTitle")}
@@ -218,36 +321,17 @@ export function TriageCard({
               </ul>
             </div>
 
-            {/* signs not observed */}
-            {best.missed.length > 0 && (
-              <div>
-                <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-                  {t("triage.notObserved")}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {best.missed.map((s) => (
-                    <span
-                      key={s}
-                      className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-mut"
-                    >
-                      {symptomLabel(s)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* other possibilities */}
             {others.length > 0 && (
               <div>
                 <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
                   {t("triage.othersTitle")}
                 </div>
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-2.5 max-[560px]:grid-cols-1">
                   {others.map((c) => {
                     const total = c.matched.length + c.missed.length;
                     return (
-                      <div key={c.code} className="rounded-xl border border-line-2 px-3.5 py-2.5">
+                      <div key={c.code} className="rounded-xl border border-line-2 px-3.5 py-3">
                         <div className="flex items-baseline gap-2">
                           <span className="text-[13px] font-semibold">
                             {candidateName(c, locale)}
@@ -278,10 +362,11 @@ export function TriageCard({
         </details>
       )}
 
-      {/* ---- hard rule: disclaimer, always ---- */}
-      <div className="border-t border-line-2 bg-paper/60 px-5 py-3">
-        <p className="text-[11.5px] leading-relaxed text-mut">
-          ⚠ {t("triage.disclaimer")}
+      {/* ================= 4 · DISCLAIMER ================= */}
+      <div className="flex items-center gap-2.5 rounded-2xl border border-line bg-gold-soft/50 px-4 py-3">
+        <AlertTriangleIcon className="h-4 w-4 shrink-0 text-[#8A6D1F]" />
+        <p className="text-[12px] leading-relaxed text-ink-2">
+          {t("triage.disclaimer")}
         </p>
       </div>
     </div>

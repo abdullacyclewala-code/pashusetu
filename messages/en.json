@@ -133,7 +133,8 @@
     "doneQueued": "Saved offline",
     "doneQueuedBody": "No connection right now — your report is safely stored on this phone and will sync automatically when you are back online.",
     "another": "New report",
-    "recent": "Recent reports"
+    "recent": "Recent reports",
+    "photoAttached": "Photo attached"
   },
   "cases": {
     "eyebrow": "Case + lab pipeline",
@@ -188,7 +189,16 @@
     "whyTitle": "Why this result",
     "othersTitle": "Other possibilities",
     "fullAnalysis": "See full analysis",
-    "notObserved": "Signs not observed"
+    "suspectedDisease": "Suspected disease",
+    "matchNote": "The reported signs match {matched} of {total} key indicators for this disease.",
+    "matchingSigns": "Matching signs",
+    "viewAllSigns": "View all {total} signs",
+    "hideSigns": "Show fewer signs",
+    "confNote": "Confidence indicates how well the reported signs match this disease.",
+    "notADiagnosis": "Not a diagnosis.",
+    "actionNote": "Quick action can prevent spread and protect the herd.",
+    "analysisSub": "Reasoning, sign match details and other possibilities.",
+    "pendingHint": "This may take a few seconds."
   },
   "alerts": {
     "eyebrow": "Early warning",

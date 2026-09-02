@@ -3,6 +3,7 @@ import { getTranslations, getFormatter } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { TriageCard } from "@/components/triage/TriageCard";
 import { TriageIcon } from "@/components/icons";
+import { SpeciesIcon } from "@/components/SpeciesIcon";
 import type { TriageRow } from "@/lib/triage/types";
 
 interface ReportWithTriage {
@@ -76,12 +77,24 @@ export default async function TriagePage() {
                     urgency={triage.urgency}
                     advisory={triage.advisory_text}
                     meta={meta}
+                    species={r.species}
                   />
                 ) : (
-                  <div className="card px-5 py-4">
-                    <div className="text-[11.5px] font-medium text-mut2">{meta}</div>
-                    <div className="mt-1 text-[13.5px] text-mut">
-                      ⏳ {t("triage.pendingResult")}
+                  <div className="card flex items-center gap-4 px-5 py-4">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-soft text-[#8A6D1F]">
+                      <SpeciesIcon species={r.species} className="h-6 w-6" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11.5px] font-medium text-mut2">
+                        {meta}
+                      </div>
+                      <div className="mt-0.5 text-[14.5px] font-semibold">
+                        {t("triage.pendingResult")}
+                      </div>
+                      <div className="progress-run mt-2 max-w-[260px]" />
+                      <div className="mt-1.5 text-[11.5px] text-mut">
+                        {t("triage.pendingHint")}
+                      </div>
                     </div>
                   </div>
                 )}

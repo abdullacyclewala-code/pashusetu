@@ -6,13 +6,13 @@
  */
 
 export const SPECIES = [
-  { key: "cattle", emoji: "🐄" },
-  { key: "buffalo", emoji: "🐃" },
-  { key: "goat", emoji: "🐐" },
-  { key: "sheep", emoji: "🐑" },
-  { key: "pig", emoji: "🐖" },
-  { key: "poultry", emoji: "🐔" },
-  { key: "other", emoji: "🐾" },
+  { key: "cattle" },
+  { key: "buffalo" },
+  { key: "goat" },
+  { key: "sheep" },
+  { key: "pig" },
+  { key: "poultry" },
+  { key: "other" },
 ] as const;
 
 export type SpeciesKey = (typeof SPECIES)[number]["key"];

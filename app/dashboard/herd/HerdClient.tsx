@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { SPECIES } from "@/lib/report/constants";
 import { HerdIcon } from "@/components/icons";
+import { SpeciesIcon } from "@/components/SpeciesIcon";
 
 export interface Animal {
   id: string;
@@ -94,7 +95,7 @@ export function HerdClient({
               >
                 {SPECIES.map((s) => (
                   <option key={s.key} value={s.key}>
-                    {s.emoji} {t(`species.${s.key}`)}
+                    {t(`species.${s.key}`)}
                   </option>
                 ))}
               </select>
@@ -203,8 +204,8 @@ export function HerdClient({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {animals.map((a) => (
             <div key={a.id} className="card flex items-center gap-4 p-4">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sage-soft text-2xl">
-                {SPECIES.find((s) => s.key === a.species)?.emoji ?? "🐾"}
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sage-soft text-sage">
+                <SpeciesIcon species={a.species} className="h-6 w-6" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-semibold">
@@ -232,7 +233,7 @@ export function HerdClient({
                     className="btn btn-line btn-sm"
                     onClick={() => setConfirmDelete(null)}
                   >
-                    ✕
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="h-3.5 w-3.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
                   </button>
                 </div>
               ) : (

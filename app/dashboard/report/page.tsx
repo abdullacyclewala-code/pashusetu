@@ -3,7 +3,7 @@ import { getTranslations, getFormatter } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import { ReportWizard } from "./ReportWizard";
-import { SPECIES } from "@/lib/report/constants";
+import { SpeciesIcon } from "@/components/SpeciesIcon";
 
 export default async function ReportPage() {
   const t = await getTranslations();
@@ -51,8 +51,8 @@ export default async function ReportPage() {
                 key={r.id}
                 className="flex items-center gap-3 border-b border-line-2 px-5 py-3 text-[13.5px] last:border-b-0"
               >
-                <span className="text-xl">
-                  {SPECIES.find((s) => s.key === r.species)?.emoji ?? "🐾"}
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sage-soft text-sage">
+                  <SpeciesIcon species={r.species} className="h-5 w-5" />
                 </span>
                 <span className="font-semibold">
                   {t(`species.${r.species}`)}

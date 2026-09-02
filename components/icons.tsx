@@ -109,3 +109,75 @@ export function PinIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function InfoIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8h.01" />
+    </svg>
+  );
+}
+
+export function CheckCircleIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.9} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 12.2l2.4 2.4 4.6-5" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={2.2} className={className}>
+      <path d="M4.5 12.5l5 5 10-11" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
+
+export function ClipboardIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <rect x="5" y="4" width="14" height="17" rx="2.5" />
+      <path d="M9 2.5h6v3H9zM9 10.5h6M9 14h6M9 17.5h3.5" />
+    </svg>
+  );
+}
+
+export function FileChartIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M14 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5z" />
+      <path d="M14 2.5V7.5h5" />
+      <path d="M9 17v-3M12 17v-5.5M15 17v-2" />
+    </svg>
+  );
+}
+
+export function AlertTriangleIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M10.3 3.9L2.6 17.3a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9.5v4.5M12 17.5h.01" />
+    </svg>
+  );
+}
+
+export function CameraIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M4 7.5h2.5l1.8-2.5h7.4l1.8 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5z" />
+      <circle cx="12" cy="13.5" r="3.6" />
+    </svg>
+  );
+}
