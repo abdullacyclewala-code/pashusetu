@@ -578,3 +578,25 @@ a:focus-visible {
     transform: translateX(290%);
   }
 }
+
+/* ── P3 officer map (Leaflet) ── */
+.case-map {
+  border-radius: 18px;
+  overflow: hidden;
+}
+.case-map .leaflet-tile {
+  filter: sepia(0.25) saturate(0.62) contrast(0.95) brightness(1.03);
+}
+.leaflet-container {
+  background: #efe8d8;
+  font-family: var(--sans);
+}
+.case-map .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+.case-map .leaflet-popup-content {
+  font-size: 12.5px;
+  line-height: 1.45;
+}

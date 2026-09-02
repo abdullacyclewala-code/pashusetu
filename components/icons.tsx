@@ -181,3 +181,20 @@ export function CameraIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M12 3v12M7 10l5 5 5-5" />
+      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  );
+}
+
+export function XIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
