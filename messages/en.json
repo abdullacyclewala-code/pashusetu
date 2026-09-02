@@ -113,7 +113,7 @@
     "review": "Review",
     "submit": "Submit report",
     "doneSynced": "Report submitted",
-    "doneSyncedBody": "Your report has been received. Triage advice arrives in Part 2.",
+    "doneSyncedBody": "Your report has been received — the triage result appears below.",
     "doneQueued": "Saved offline",
     "doneQueuedBody": "No connection right now — your report is safely stored on this phone and will sync automatically when you are back online.",
     "another": "New report",
@@ -148,7 +148,27 @@
     "lede": "Rule-based assessment shown transparently — always preliminary, never a diagnosis.",
     "emptyTitle": "Triage result",
     "emptyBody": "Suspected condition, confidence, reasons, first-aid advisory and next actions. Coming in Part 2.",
-    "disclaimer": "Preliminary triage, not a diagnosis — always consult a veterinarian."
+    "disclaimer": "Preliminary triage, not a diagnosis — always consult a veterinarian.",
+    "urgency": {
+      "low": "Low urgency",
+      "medium": "Medium urgency",
+      "high": "High urgency",
+      "critical": "Critical"
+    },
+    "suspected": "Suspected",
+    "confidence": "Confidence",
+    "noCandidates": "The signs did not clearly match a known disease — a veterinarian should examine the animal.",
+    "advisoryTitle": "What to do now",
+    "pendingResult": "Analysing your report…",
+    "emptyNow": "Submit a report and its triage result will appear here.",
+    "reasons": {
+      "symptom_match": "{matched} of {total} known signs of this disease match",
+      "hallmark": "Hallmark sign present: {symptom}",
+      "season": "This disease is in season right now",
+      "nearby": "{count, plural, one {# similar report} other {# similar reports}} in your district in the last 14 days",
+      "zoonotic": "Can spread to humans — handle with care",
+      "notifiable": "Notifiable disease — authorities must be informed"
+    }
   },
   "alerts": {
     "eyebrow": "Early warning",
@@ -216,7 +236,29 @@
     "abortion": "Abortion",
     "twisted_neck": "Twisted neck",
     "drop_egg_production": "Egg production drop",
-    "respiratory_distress": "Respiratory distress"
+    "respiratory_distress": "Respiratory distress",
+    "high_fever": "High fever",
+    "crepitation": "Crackling under skin",
+    "bleeding_openings": "Bleeding from openings",
+    "staggering": "Staggering",
+    "retained_placenta": "Retained placenta",
+    "infertility": "Infertility",
+    "swollen_joints": "Swollen joints",
+    "pneumonia": "Pneumonia",
+    "death": "Death",
+    "udder_pain": "Udder pain",
+    "anaemia": "Anaemia (pale gums)",
+    "jaundice": "Jaundice",
+    "intermittent_fever": "On-off fever",
+    "oedema": "Fluid swelling",
+    "aggression": "Aggression",
+    "excess_salivation": "Excess salivation",
+    "difficulty_swallowing": "Difficulty swallowing",
+    "swollen_tongue": "Swollen tongue",
+    "swollen_head": "Swollen head",
+    "greenish_diarrhoea": "Greenish diarrhoea",
+    "purple_skin": "Purple skin patches",
+    "huddling": "Huddling together"
   },
   "sync": {
     "pending": "{count, plural, one {# report waiting to sync} other {# reports waiting to sync}}",

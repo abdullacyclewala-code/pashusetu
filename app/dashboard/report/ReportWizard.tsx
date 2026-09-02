@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { createClient } from "@/lib/supabase/client";
 import { localDb, type ReportPayload } from "@/lib/offline/db";
 import { syncPendingReports } from "@/lib/offline/sync";
 import { compressImage } from "@/lib/report/image";
 import { SPECIES, SYMPTOM_GROUPS } from "@/lib/report/constants";
+import { TriageCard } from "@/components/triage/TriageCard";
+import type { TriageRow } from "@/lib/triage/types";
 import type { Profile } from "@/lib/types";
 
 interface HerdAnimal {
@@ -59,6 +62,38 @@ export function ReportWizard({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<"synced" | "queued" | null>(null);
+  const [lastId, setLastId] = useState<string | null>(null);
+  const [triage, setTriage] = useState<TriageRow | null>(null);
+
+  // After a synced submit, poll briefly for the triage result (the DB
+  // trigger + edge function usually land it within a second or two).
+  useEffect(() => {
+    if (done !== "synced" || !lastId) return;
+    let attempts = 0;
+    let cancelled = false;
+    const supabase = createClient();
+    const poll = async () => {
+      if (cancelled || attempts++ >= 10) return;
+      const { data } = await supabase
+        .from("triage_results")
+        .select(
+          "disease_candidates, confidence, urgency, advisory_text, notifiable_flag, source"
+        )
+        .eq("report_id", lastId)
+        .eq("source", "rule_engine")
+        .maybeSingle<TriageRow>();
+      if (cancelled) return;
+      if (data) {
+        setTriage(data);
+      } else {
+        setTimeout(poll, 1500);
+      }
+    };
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [done, lastId]);
 
   const speciesAnimals = useMemo(
     () => animals.filter((a) => a.species === form.species),
@@ -151,6 +186,8 @@ export function ReportWizard({
       // 2. Try to sync now; if it stays queued we're offline (or failing).
       await syncPendingReports();
       const stillQueued = await localDb.pendingReports.get(id);
+      setLastId(id);
+      setTriage(null);
       setDone(stillQueued ? "queued" : "synced");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.genericError"));
@@ -162,51 +199,66 @@ export function ReportWizard({
   /* ---------- done screen ---------- */
   if (done) {
     return (
-      <div className="card page-in mt-6 flex flex-col items-center gap-4 p-8 text-center">
-        <span
-          className={`grid h-14 w-14 place-items-center rounded-full text-2xl ${
-            done === "synced" ? "bg-sage-soft" : "bg-[#FBF3DC]"
-          }`}
-        >
-          {done === "synced" ? "✓" : "⏳"}
-        </span>
-        <div className="font-serif text-xl font-semibold">
-          {done === "synced" ? t("report.doneSynced") : t("report.doneQueued")}
-        </div>
-        <p className="lede">
-          {done === "synced"
-            ? t("report.doneSyncedBody")
-            : t("report.doneQueuedBody")}
-        </p>
-        <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-mut">
-          {t("triage.disclaimer")}
-        </p>
-        <div className="flex w-full flex-wrap gap-3">
-          <button
-            type="button"
-            className="btn btn-dark flex-1"
-            onClick={() => {
-              setDone(null);
-              setStep(0);
-              setForm((f) => ({
-                ...f,
-                species: "",
-                symptoms: [],
-                freeText: "",
-                sickCount: 1,
-                deadCount: 0,
-                animalId: null,
-                photo: null,
-                gps: null,
-              }));
-            }}
+      <div className="page-in mt-6 flex flex-col gap-4">
+        <div className="card flex flex-col items-center gap-4 p-8 text-center">
+          <span
+            className={`grid h-14 w-14 place-items-center rounded-full text-2xl ${
+              done === "synced" ? "bg-sage-soft" : "bg-[#FBF3DC]"
+            }`}
           >
-            {t("report.another")}
-          </button>
-          <Link href="/dashboard" className="btn btn-line flex-1">
-            {t("nav.dash")}
-          </Link>
+            {done === "synced" ? "✓" : "⏳"}
+          </span>
+          <div className="font-serif text-xl font-semibold">
+            {done === "synced" ? t("report.doneSynced") : t("report.doneQueued")}
+          </div>
+          <p className="lede">
+            {done === "synced"
+              ? t("report.doneSyncedBody")
+              : t("report.doneQueuedBody")}
+          </p>
+          <div className="flex w-full flex-wrap gap-3">
+            <button
+              type="button"
+              className="btn btn-dark flex-1"
+              onClick={() => {
+                setDone(null);
+                setTriage(null);
+                setStep(0);
+                setForm((f) => ({
+                  ...f,
+                  species: "",
+                  symptoms: [],
+                  freeText: "",
+                  sickCount: 1,
+                  deadCount: 0,
+                  animalId: null,
+                  photo: null,
+                  gps: null,
+                }));
+              }}
+            >
+              {t("report.another")}
+            </button>
+            <Link href="/dashboard/triage" className="btn btn-line flex-1">
+              {t("nav.triage")}
+            </Link>
+          </div>
         </div>
+
+        {/* live triage result */}
+        {done === "synced" &&
+          (triage ? (
+            <TriageCard
+              candidates={triage.disease_candidates}
+              urgency={triage.urgency}
+              advisory={triage.advisory_text}
+            />
+          ) : (
+            <div className="card flex items-center gap-3 px-5 py-4 text-[13.5px] text-mut">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-sage" />
+              {t("triage.pendingResult")}
+            </div>
+          ))}
       </div>
     );
   }
