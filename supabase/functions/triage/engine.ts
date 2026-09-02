@@ -177,7 +177,12 @@ export function runTriage(input: TriageInput, kb: DiseaseRow[]): TriageResult {
     urgency = input.deadCount > 0 ? "high" : "low";
   } else if (best.notifiable && (input.deadCount > 0 || confidence >= 0.55)) {
     urgency = "critical";
-  } else if (best.notifiable || best.zoonotic || input.deadCount > 0) {
+  } else if (input.deadCount > 0) {
+    urgency = "high";
+  } else if ((best.notifiable || best.zoonotic) && confidence >= 0.4) {
+    // dangerous disease but weak evidence (< 0.4, e.g. only generic
+    // signs like fever) stays "medium" — the advisory still carries the
+    // notifiable warning; escalation needs deaths or a stronger match.
     urgency = "high";
   } else {
     urgency = "medium";

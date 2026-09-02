@@ -198,7 +198,8 @@
     "notADiagnosis": "Not a diagnosis.",
     "actionNote": "Quick action can prevent spread and protect the herd.",
     "analysisSub": "Reasoning, sign match details and other possibilities.",
-    "pendingHint": "This may take a few seconds."
+    "pendingHint": "This may take a few seconds.",
+    "urgencyNote": "Urgency reflects how dangerous the suspected disease is and whether deaths were reported — not only the confidence score."
   },
   "alerts": {
     "eyebrow": "Early warning",

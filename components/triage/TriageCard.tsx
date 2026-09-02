@@ -28,7 +28,8 @@ function candidateName(c: Candidate, locale: string): string {
   return c.name_en;
 }
 
-/** Circular confidence gauge. */
+/** Circular confidence gauge. Compact on phones — the wrapper div sets
+ *  the rendered size, the SVG scales with it. */
 function ConfidenceRing({
   pct,
   color,
@@ -42,31 +43,33 @@ function ConfidenceRing({
   const c = 2 * Math.PI * r;
   return (
     <div className="flex shrink-0 flex-col items-center gap-1.5">
-      <svg width="92" height="92" viewBox="0 0 92 92">
-        <circle cx="46" cy="46" r={r} stroke="var(--line-2)" strokeWidth="7" fill="none" />
-        <circle
-          cx="46"
-          cy="46"
-          r={r}
-          stroke={color}
-          strokeWidth="7"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${(c * Math.max(0.02, pct)).toFixed(1)} ${c.toFixed(1)}`}
-          transform="rotate(-90 46 46)"
-        />
-        <text
-          x="46"
-          y="53"
-          textAnchor="middle"
-          fontSize="21"
-          fontWeight="700"
-          fill="var(--ink)"
-        >
-          {Math.round(pct * 100)}%
-        </text>
-      </svg>
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-mut">
+      <div className="h-[92px] w-[92px] max-[760px]:h-[60px] max-[760px]:w-[60px]">
+        <svg viewBox="0 0 92 92" width="100%" height="100%">
+          <circle cx="46" cy="46" r={r} stroke="var(--line-2)" strokeWidth="7" fill="none" />
+          <circle
+            cx="46"
+            cy="46"
+            r={r}
+            stroke={color}
+            strokeWidth="7"
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${(c * Math.max(0.02, pct)).toFixed(1)} ${c.toFixed(1)}`}
+            transform="rotate(-90 46 46)"
+          />
+          <text
+            x="46"
+            y="53"
+            textAnchor="middle"
+            fontSize="21"
+            fontWeight="700"
+            fill="var(--ink)"
+          >
+            {Math.round(pct * 100)}%
+          </text>
+        </svg>
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-mut max-[760px]:hidden">
         {label}
       </span>
     </div>
@@ -213,14 +216,14 @@ export function TriageCard({
               )}
             </div>
 
-            {/* right: confidence */}
-            <div className="flex flex-col items-center justify-center gap-3.5 border-l border-line-2 px-6 py-5 max-[760px]:border-l-0 max-[760px]:border-t max-[760px]:px-5">
+            {/* right: confidence — side-by-side strip on phones */}
+            <div className="flex flex-col items-center justify-center gap-3.5 border-l border-line-2 px-6 py-5 max-[760px]:flex-row max-[760px]:gap-4 max-[760px]:border-l-0 max-[760px]:border-t max-[760px]:px-5 max-[760px]:py-3.5">
               <ConfidenceRing
                 pct={best.confidence}
                 color={style.ring}
                 label={t("triage.confidence")}
               />
-              <p className="max-w-[240px] rounded-xl bg-gold-soft/60 px-3.5 py-2.5 text-center text-[12px] leading-relaxed text-ink-2">
+              <p className="max-w-[240px] rounded-xl bg-gold-soft/60 px-3.5 py-2.5 text-center text-[12px] leading-relaxed text-ink-2 max-[760px]:max-w-none max-[760px]:flex-1 max-[760px]:bg-transparent max-[760px]:p-0 max-[760px]:text-left">
                 {t("triage.confNote")}{" "}
                 <span className="font-bold text-accent">
                   {t("triage.notADiagnosis")}
@@ -319,6 +322,9 @@ export function TriageCard({
                   </li>
                 ))}
               </ul>
+              <p className="mt-3 rounded-xl border border-line-2 bg-paper/70 px-3.5 py-2.5 text-[12px] leading-relaxed text-mut">
+                {t("triage.urgencyNote")}
+              </p>
             </div>
 
             {/* other possibilities */}
