@@ -276,7 +276,7 @@ export function ReportWizard({
             }`}
           />
         ))}
-        <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.1em] text-mut">
+        <span className="ml-2 text-[11.5px] font-semibold text-mut">
           {t("report.stepOf", { current: step + 1, total: TOTAL_STEPS })}
         </span>
       </div>
@@ -317,7 +317,7 @@ export function ReportWizard({
                 (g) => g.group !== "poultry_signs" || form.species === "poultry"
               ).map((g) => (
                 <div key={g.group}>
-                  <div className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-mut2">
+                  <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
                     {t(`symptomGroups.${g.group}`)}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -510,7 +510,7 @@ export function ReportWizard({
 
               {/* review summary */}
               <div className="rounded-xl border border-line-2 bg-paper/60 p-4">
-                <div className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-mut2">
+                <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
                   {t("report.review")}
                 </div>
                 <div className="flex flex-col gap-1 text-[13.5px]">

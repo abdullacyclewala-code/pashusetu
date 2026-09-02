@@ -211,7 +211,7 @@ export function HerdClient({
                   {t(`species.${a.species}`)}
                   {a.breed ? ` · ${a.breed}` : ""}
                 </div>
-                <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.06em] text-mut">
+                <div className="truncate text-[12px] font-medium text-mut">
                   {a.tag_id
                     ? `${t("herd.tagShort")} ${a.tag_id}`
                     : t("herd.noTag")}
@@ -239,7 +239,7 @@ export function HerdClient({
                 <button
                   type="button"
                   aria-label={t("common.remove")}
-                  className="shrink-0 rounded-lg px-2 py-1 font-mono text-[10px] uppercase text-mut2 transition hover:text-accent"
+                  className="shrink-0 rounded-lg px-2 py-1 text-[11.5px] font-semibold text-mut2 transition hover:text-accent"
                   onClick={() => setConfirmDelete(a.id)}
                 >
                   {t("common.remove")}

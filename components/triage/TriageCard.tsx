@@ -42,7 +42,7 @@ export function TriageCard({
       {/* header: urgency + top suspicion */}
       <div className="flex flex-wrap items-center gap-3 border-b border-line-2 px-5 py-4">
         <span
-          className="rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]"
+          className="rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em]"
           style={{ background: style.bg, color: style.fg }}
         >
           {t(`triage.urgency.${urgency}`)}
@@ -52,7 +52,7 @@ export function TriageCard({
             <div className="text-[15px] font-bold">
               {t("triage.suspected")}: {candidateName(best, locale)}
             </div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-mut">
+            <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-mut">
               {t("triage.confidence")} {Math.round(best.confidence * 100)}%
             </div>
           </div>
@@ -70,7 +70,7 @@ export function TriageCard({
                 <span className="text-[13.5px] font-semibold">
                   {i + 1}. {candidateName(c, locale)}
                 </span>
-                <span className="font-mono text-[10.5px] text-mut">
+                <span className="text-[11.5px] font-semibold text-mut">
                   {Math.round(c.confidence * 100)}%
                 </span>
               </div>
@@ -116,7 +116,7 @@ export function TriageCard({
       {/* advisory */}
       {advisory && (
         <div className="border-t border-line-2 bg-paper/50 px-5 py-4">
-          <div className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-mut2">
+          <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
             {t("triage.advisoryTitle")}
           </div>
           <ul className="flex flex-col gap-1">
@@ -134,7 +134,7 @@ export function TriageCard({
 
       {/* hard rule: disclaimer, always */}
       <div className="border-t border-line-2 px-5 py-3">
-        <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-mut">
+        <p className="text-[11.5px] leading-relaxed text-mut">
           ⚠ {t("triage.disclaimer")}
         </p>
       </div>

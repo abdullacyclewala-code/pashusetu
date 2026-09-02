@@ -47,7 +47,7 @@ export function OfflineSyncBadge() {
           setSyncing(false);
         }
       }}
-      className="fixed bottom-[86px] left-1/2 z-[70] flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-ink px-4 py-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.08em] text-sage-on shadow-lg min-[881px]:bottom-6"
+      className="fixed bottom-[86px] left-1/2 z-[70] flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-ink px-4 py-2 text-[12px] font-semibold text-sage-on shadow-lg min-[881px]:bottom-6"
     >
       <span
         className={`h-2 w-2 rounded-full ${

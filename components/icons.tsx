@@ -81,3 +81,31 @@ export function BellIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function CloudOffIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M22 16.5a4.5 4.5 0 0 0-3.5-4.4A7 7 0 0 0 7.7 7.3" />
+      <path d="M4.6 8.6A7 7 0 0 0 4 11a4.5 4.5 0 0 0 .5 9h11" />
+      <path d="M3 3l18 18" />
+    </svg>
+  );
+}
+
+export function LangIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1" />
+      <path d="M22 22l-5-10-5 10M14 18h6" />
+    </svg>
+  );
+}
+
+export function PinIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}

@@ -1,8 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Instrument_Sans } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import "./globals.css";
+
+const serif = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif-next",
+  display: "swap",
+});
+
+const sans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans-next",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "PashuSetu · पशुसेतु",
@@ -13,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#282016",
+  themeColor: "#251C11",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -25,7 +38,7 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={`${serif.variable} ${sans.variable}`}>
       <body>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <ServiceWorkerRegistrar />

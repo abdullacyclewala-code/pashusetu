@@ -21,14 +21,13 @@ export async function setLocale(locale: string) {
   // Persist to the profile when Supabase is configured and a user is signed in.
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
+    const { data } = await supabase.auth.getClaims();
+    const uid = data?.claims?.sub;
+    if (uid) {
       await supabase
         .from("profiles")
         .update({ language_pref: locale })
-        .eq("id", user.id);
+        .eq("id", uid);
     }
   }
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, Role } from "@/lib/types";
@@ -16,14 +17,16 @@ import {
   TriageIcon,
   LogoutIcon,
   BellIcon,
+  PinIcon,
 } from "@/components/icons";
 
 /**
- * Responsive app shell from the approved mock:
- *  laptop  → sidebar + topbar + content
- *  mobile  → top bar + fixed bottom tab bar
- * Navigation is role-gated: farmers see report/herd tools,
- * officers/vets/labs see the surveillance side.
+ * Responsive app shell:
+ *  laptop → sidebar + topbar + content
+ *  mobile → top bar + fixed bottom tab bar
+ * Navigation is role-gated. The active tab updates OPTIMISTICALLY on
+ * click (before the server round-trip) so switching feels instant;
+ * route-level loading.tsx paints the skeleton while data loads.
  */
 
 type NavKey = "dash" | "report" | "cases" | "herd" | "alerts" | "triage";
@@ -69,7 +72,7 @@ const SCREENING: NavItem[] = [
   },
 ];
 
-function activeKey(pathname: string): NavKey {
+function keyFromPath(pathname: string): NavKey {
   const seg = pathname.split("/")[2];
   if (
     seg === "report" ||
@@ -92,7 +95,11 @@ export function AppShell({
   const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
-  const active = activeKey(pathname);
+
+  // optimistic active tab — set on click, reconciled when the URL changes
+  const [target, setTarget] = useState<NavKey | null>(null);
+  useEffect(() => setTarget(null), [pathname]);
+  const active = target ?? keyFromPath(pathname);
 
   const nav = NAV.filter((n) => n.roles.includes(profile.role));
   const screening = SCREENING.filter((n) => n.roles.includes(profile.role));
@@ -110,61 +117,90 @@ export function AppShell({
   return (
     <div className="flex min-h-screen">
       {/* ---- sidebar (laptop) ---- */}
-      <aside className="sticky top-0 z-50 hidden h-screen w-[220px] shrink-0 flex-col border-r border-line bg-card px-4 pt-6 pb-[18px] min-[881px]:flex">
-        <Link href="/dashboard" className="flex items-center gap-[11px] px-2 pb-[26px]">
-          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-ink text-sage-on">
+      <aside className="sticky top-0 z-50 hidden h-screen w-[240px] shrink-0 flex-col border-r border-line bg-card px-4 pt-6 pb-4 min-[881px]:flex">
+        <Link
+          href="/dashboard"
+          onClick={() => setTarget("dash")}
+          className="flex items-center gap-3 px-2 pb-7"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-sage-on">
             <CowIcon className="h-[19px] w-[19px]" />
           </span>
           <span>
             <span className="font-serif text-lg font-semibold leading-none tracking-tight">
               Pashu<b className="text-accent">Setu</b>
             </span>
-            <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-mut">
+            <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-mut">
               पशुसेतु
             </div>
           </span>
         </Link>
 
-        <div className="px-2 pb-2 font-mono text-[9px] uppercase tracking-[0.16em] text-mut2">
+        <div className="px-3 pb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
           {t("nav.workspace")}
         </div>
-        <nav className="flex flex-col gap-[2px]">
+        <nav className="flex flex-col gap-0.5">
           {nav.map((n) => (
-            <SideLink key={n.key} item={n} active={active} label={t(`nav.${n.key}`)} />
+            <SideLink
+              key={n.key}
+              item={n}
+              active={active}
+              label={t(`nav.${n.key}`)}
+              onGo={setTarget}
+            />
           ))}
         </nav>
 
         {screening.length > 0 && (
           <>
-            <div className="mt-[18px] px-2 pb-2 font-mono text-[9px] uppercase tracking-[0.16em] text-mut2">
+            <div className="mt-5 px-3 pb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
               {t("nav.screening")}
             </div>
-            <nav className="flex flex-col gap-[2px]">
+            <nav className="flex flex-col gap-0.5">
               {screening.map((n) => (
-                <SideLink key={n.key} item={n} active={active} label={t(`nav.${n.key}`)} />
+                <SideLink
+                  key={n.key}
+                  item={n}
+                  active={active}
+                  label={t(`nav.${n.key}`)}
+                  onGo={setTarget}
+                />
               ))}
             </nav>
           </>
         )}
 
-        <div className="mt-auto flex flex-col gap-2 border-t border-line-2 pt-[14px]">
-          <LanguageSwitcher />
-          <button
-            type="button"
-            onClick={logout}
-            className="flex items-center gap-[11px] rounded-[9px] px-3 py-[10px] text-left text-[13.5px] font-semibold text-mut transition hover:bg-[#F5F0E4] hover:text-ink"
-          >
-            <LogoutIcon className="h-[17px] w-[17px] shrink-0" />
-            {t("nav.logout")}
-          </button>
+        <div className="mt-auto border-t border-line-2 pt-3">
+          <div className="flex items-center gap-3 rounded-2xl px-2 py-2">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-bold text-accent">
+              {initial}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13.5px] font-semibold leading-tight">
+                {profile.name}
+              </span>
+              <span className="block truncate text-[11.5px] text-mut">
+                {t(`roles.${profile.role}`)}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={logout}
+              aria-label={t("nav.logout")}
+              title={t("nav.logout")}
+              className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full text-mut transition hover:bg-accent-soft hover:text-accent"
+            >
+              <LogoutIcon className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* ---- main column ---- */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* mobile top bar */}
-        <div className="sticky top-0 z-50 flex h-14 items-center gap-2.5 border-b border-line bg-card px-4 min-[881px]:hidden">
-          <Link href="/dashboard" className="flex items-center gap-[11px]">
+        <div className="sticky top-0 z-50 flex h-14 items-center gap-2.5 border-b border-line bg-paper/90 px-4 backdrop-blur min-[881px]:hidden">
+          <Link href="/dashboard" onClick={() => setTarget("dash")} className="flex items-center gap-2.5">
             <span className="grid h-[30px] w-[30px] place-items-center rounded-[10px] bg-ink text-sage-on">
               <CowIcon className="h-4 w-4" />
             </span>
@@ -172,65 +208,67 @@ export function AppShell({
               Pashu<b className="text-accent">Setu</b>
             </span>
           </Link>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2.5">
             <LanguageSwitcher />
-            <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-accent text-[11px] font-bold text-white">
+            <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">
               {initial}
             </span>
           </div>
         </div>
 
         {/* desktop top bar */}
-        <div className="sticky top-0 z-40 hidden h-[60px] items-center gap-3.5 border-b border-line bg-card px-[clamp(18px,3vw,40px)] min-[881px]:flex">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-mut">
-              {t(`crumbs.${active}`)}
-            </div>
-            <div className="mt-px font-serif text-lg font-semibold tracking-tight">
-              {t(`titles.${active}`)}
-            </div>
+        <div className="sticky top-0 z-40 hidden h-[62px] items-center gap-3.5 border-b border-line bg-paper/85 px-[clamp(18px,3vw,40px)] backdrop-blur min-[881px]:flex">
+          <div className="font-serif text-[19px] font-semibold tracking-tight">
+            {t(`titles.${active}`)}
           </div>
-          <div className="ml-auto flex items-center gap-4">
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-mut">
-              {t(`roles.${profile.role}`)}
-              {profile.district ? ` · ${profile.district}` : ""}
-            </span>
-            <span className="grid h-[34px] w-[34px] place-items-center rounded-full bg-accent text-xs font-bold text-white">
-              {initial}
-            </span>
+          <div className="ml-auto flex items-center gap-3">
+            {profile.district && (
+              <span className="chip max-[1023px]:hidden">
+                <PinIcon className="h-3.5 w-3.5" />
+                {profile.district}
+              </span>
+            )}
+            <LanguageSwitcher />
           </div>
         </div>
 
-        <main className="mx-auto w-full max-w-[1140px] flex-1 px-[clamp(18px,3vw,40px)] pt-[clamp(22px,3.4vw,44px)] pb-[90px] max-[880px]:px-4 max-[880px]:pt-5 max-[880px]:pb-24">
+        <main className="mx-auto w-full max-w-[1080px] flex-1 px-[clamp(18px,3vw,40px)] pt-[clamp(22px,3vw,36px)] pb-[90px] max-[880px]:px-4 max-[880px]:pt-5 max-[880px]:pb-28">
           {children}
         </main>
         <OfflineSyncBadge />
       </div>
 
       {/* ---- bottom tabs (mobile) ---- */}
-      <nav className="fixed inset-x-0 bottom-0 z-[60] hidden border-t border-line bg-card pb-[env(safe-area-inset-bottom)] max-[880px]:block">
+      <nav className="fixed inset-x-0 bottom-0 z-[60] hidden border-t border-line bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)] max-[880px]:block">
         {(() => {
           const items = tabs.filter((n) => n.key !== "report");
-          const Tab = (n: NavItem) => (
-            <Link
-              key={n.key}
-              href={n.href}
-              className={`relative flex h-full flex-col items-center justify-center gap-[3px] whitespace-nowrap font-mono text-[9.5px] font-semibold uppercase tracking-[0.04em] ${
-                active === n.key ? "text-accent" : "text-mut2"
-              }`}
-            >
-              {active === n.key && (
-                <span className="absolute top-0 left-1/2 h-[2px] w-7 -translate-x-1/2 bg-accent" />
-              )}
-              <n.icon className="h-[21px] w-[21px]" />
-              {t(n.key === "dash" ? "nav.home" : `nav.${n.key}`)}
-            </Link>
-          );
+          const Tab = (n: NavItem) => {
+            const is = active === n.key;
+            return (
+              <Link
+                key={n.key}
+                href={n.href}
+                onClick={() => setTarget(n.key)}
+                className={`flex h-full flex-col items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold ${
+                  is ? "text-accent" : "text-mut2"
+                }`}
+              >
+                <span
+                  className={`grid h-7 w-12 place-items-center rounded-full transition ${
+                    is ? "bg-accent-soft" : ""
+                  }`}
+                >
+                  <n.icon className="h-[20px] w-[20px]" />
+                </span>
+                {t(n.key === "dash" ? "nav.home" : `nav.${n.key}`)}
+              </Link>
+            );
+          };
           const mid = Math.ceil(items.length / 2);
           const cols = canReport ? items.length + 1 : items.length;
           return (
             <div
-              className="mx-auto grid h-[62px] max-w-[480px]"
+              className="mx-auto grid h-[64px] max-w-[480px]"
               style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
               {items.slice(0, canReport ? mid : items.length).map(Tab)}
@@ -238,8 +276,9 @@ export function AppShell({
                 <div className="flex items-center justify-center">
                   <Link
                     href="/dashboard/report"
+                    onClick={() => setTarget("report")}
                     aria-label={t("nav.report")}
-                    className="grid h-[50px] w-[50px] -translate-y-[13px] place-items-center rounded-full border-4 border-card bg-accent text-white shadow-[0_3px_10px_rgba(168,67,31,0.3)]"
+                    className="grid h-[52px] w-[52px] -translate-y-[14px] place-items-center rounded-full border-4 border-paper bg-accent text-white shadow-[0_4px_14px_rgba(168,67,31,0.35)] transition active:scale-95"
                   >
                     <PlusIcon className="h-[22px] w-[22px]" />
                   </Link>
@@ -258,25 +297,25 @@ function SideLink({
   item,
   active,
   label,
+  onGo,
 }: {
   item: NavItem;
   active: NavKey;
   label: string;
+  onGo: (k: NavKey) => void;
 }) {
   const is = active === item.key;
   return (
     <Link
       href={item.href}
-      className={`relative flex items-center gap-[11px] rounded-[9px] px-3 py-[10px] text-[13.5px] transition ${
+      onClick={() => onGo(item.key)}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition ${
         is
-          ? "bg-[#F3E7DA] font-bold text-accent"
-          : "font-semibold text-mut hover:bg-[#F5F0E4] hover:text-ink"
+          ? "bg-accent-soft font-bold text-accent"
+          : "font-semibold text-mut hover:bg-line-2 hover:text-ink"
       }`}
     >
-      {is && (
-        <span className="absolute -left-4 top-2 bottom-2 w-[3px] rounded-sm bg-accent" />
-      )}
-      <item.icon className={`h-[17px] w-[17px] shrink-0 ${is ? "text-accent" : ""}`} />
+      <item.icon className="h-[17px] w-[17px] shrink-0" />
       {label}
     </Link>
   );

@@ -62,7 +62,7 @@ export default async function ReportPage() {
                   {t("report.sick")} {r.sick_count} · {t("report.dead")}{" "}
                   {r.dead_count}
                 </span>
-                <span className="ml-auto text-right font-mono text-[10.5px] uppercase text-mut2">
+                <span className="ml-auto text-right text-[11.5px] font-medium text-mut2">
                   {r.village ?? ""}
                   <br />
                   {format.dateTime(new Date(r.created_at), {

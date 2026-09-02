@@ -71,7 +71,7 @@ export default async function TriagePage() {
                     · {t("report.sick")} {r.sick_count} · {t("report.dead")}{" "}
                     {r.dead_count}
                   </span>
-                  <span className="ml-auto font-mono text-[10px] uppercase text-mut2">
+                  <span className="ml-auto text-[11.5px] font-medium text-mut2">
                     {r.village ? `${r.village} · ` : ""}
                     {format.dateTime(new Date(r.created_at), {
                       day: "numeric",
