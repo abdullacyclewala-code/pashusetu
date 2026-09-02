@@ -98,7 +98,11 @@ export function AppShell({
 
   // optimistic active tab — set on click, reconciled when the URL changes
   const [target, setTarget] = useState<NavKey | null>(null);
-  useEffect(() => setTarget(null), [pathname]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    setTarget(null);
+    setMenuOpen(false);
+  }, [pathname]);
   const active = target ?? keyFromPath(pathname);
 
   const nav = NAV.filter((n) => n.roles.includes(profile.role));
@@ -210,9 +214,44 @@ export function AppShell({
           </Link>
           <div className="ml-auto flex items-center gap-2.5">
             <LanguageSwitcher />
-            <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">
-              {initial}
-            </span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label={profile.name}
+                aria-expanded={menuOpen}
+                className="grid h-[30px] w-[30px] place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent"
+              >
+                {initial}
+              </button>
+              {menuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-11 z-50 w-60 rounded-2xl border border-line bg-card p-2 shadow-[var(--shadow-card)]">
+                    <div className="px-3 py-2">
+                      <div className="truncate text-[14px] font-bold text-ink">
+                        {profile.name}
+                      </div>
+                      <div className="truncate text-[12px] text-mut">
+                        {t(`roles.${profile.role}`)}
+                        {profile.district ? ` · ${profile.district}` : ""}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold text-accent transition-colors hover:bg-accent-soft"
+                    >
+                      <LogoutIcon className="h-4 w-4" />
+                      {t("nav.logout")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
