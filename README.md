@@ -23,3 +23,10 @@ npm run dev
 
 ## Deploy
 Vercel → Import this repo → add the three Supabase env vars → deploy. `git push` to `main` auto-deploys.
+
+## Credits
+
+Species icons (cow, bison, goat, sheep, pig, chicken, paw print) by
+[Delapouite](https://delapouite.com), [Skoll](https://game-icons.net) and
+[Lorc](https://lorcblog.blogspot.com) from [game-icons.net](https://game-icons.net),
+used under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
