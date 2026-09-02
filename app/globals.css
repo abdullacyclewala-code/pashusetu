@@ -435,17 +435,8 @@ a:focus-visible {
   width: 86%;
   max-width: 560px;
   aspect-ratio: 800 / 659;
+  transform: rotateX(52deg) rotateZ(-14deg);
   transform-style: preserve-3d;
-  animation: psFloat 8s ease-in-out infinite;
-}
-@keyframes psFloat {
-  0%,
-  100% {
-    transform: rotateX(52deg) rotateZ(-14deg) translateZ(0);
-  }
-  50% {
-    transform: rotateX(52deg) rotateZ(-14deg) translateZ(26px);
-  }
 }
 .ps-plane svg {
   position: absolute;
@@ -491,60 +482,10 @@ a:focus-visible {
   text-transform: uppercase;
 }
 
-/* map animations */
-.ps-ring {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: psPing 3.2s ease-out infinite;
-}
-@keyframes psPing {
-  0% {
-    transform: scale(0.35);
-    opacity: 0.85;
-  }
-  70% {
-    opacity: 0;
-  }
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
-}
-.ps-arc {
-  stroke-dasharray: 3 7;
-  animation: psFlow 4.5s linear infinite;
-}
-@keyframes psFlow {
-  to {
-    stroke-dashoffset: -100;
-  }
-}
-.ps-dot {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: psBreathe 3.2s ease-in-out infinite;
-}
-@keyframes psBreathe {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.25);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .ps-ring,
-  .ps-arc,
-  .ps-dot,
-  .ps-plane,
-  .ps-sweep,
   .page-in,
   .skel {
     animation: none;
-  }
-  .ps-plane {
-    transform: rotateX(52deg) rotateZ(-14deg);
   }
 }
 

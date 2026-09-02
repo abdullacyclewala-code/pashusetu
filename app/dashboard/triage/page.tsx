@@ -3,7 +3,6 @@ import { getTranslations, getFormatter } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { TriageCard } from "@/components/triage/TriageCard";
 import { TriageIcon } from "@/components/icons";
-import { SPECIES } from "@/lib/report/constants";
 import type { TriageRow } from "@/lib/triage/types";
 
 interface ReportWithTriage {
@@ -57,38 +56,33 @@ export default async function TriagePage() {
             const triage = r.triage_results.find(
               (x) => x.source === "rule_engine"
             );
+            const meta = [
+              t(`species.${r.species}`),
+              `${t("report.sick")} ${r.sick_count}`,
+              r.dead_count > 0 ? `${t("report.dead")} ${r.dead_count}` : null,
+              r.village,
+              format.dateTime(new Date(r.created_at), {
+                day: "numeric",
+                month: "short",
+              }),
+            ]
+              .filter(Boolean)
+              .join(" · ");
             return (
               <div key={r.id}>
-                <div className="mb-2 flex items-center gap-2.5 px-1">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sage-soft text-base">
-                    {SPECIES.find((s) => s.key === r.species)?.emoji ?? "🐾"}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-[13.5px] font-semibold leading-tight">
-                      {t(`species.${r.species}`)}
-                    </div>
-                    <div className="text-[11.5px] text-mut">
-                      {t("report.sick")} {r.sick_count} · {t("report.dead")}{" "}
-                      {r.dead_count}
-                    </div>
-                  </div>
-                  <span className="ml-auto shrink-0 text-[11.5px] font-medium text-mut2">
-                    {r.village ? `${r.village} · ` : ""}
-                    {format.dateTime(new Date(r.created_at), {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
-                </div>
                 {triage ? (
                   <TriageCard
                     candidates={triage.disease_candidates}
                     urgency={triage.urgency}
                     advisory={triage.advisory_text}
+                    meta={meta}
                   />
                 ) : (
-                  <div className="card px-5 py-4 text-[13.5px] text-mut">
-                    ⏳ {t("triage.pendingResult")}
+                  <div className="card px-5 py-4">
+                    <div className="text-[11.5px] font-medium text-mut2">{meta}</div>
+                    <div className="mt-1 text-[13.5px] text-mut">
+                      ⏳ {t("triage.pendingResult")}
+                    </div>
                   </div>
                 )}
               </div>

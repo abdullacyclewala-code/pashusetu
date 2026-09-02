@@ -3,11 +3,14 @@
 import { useLocale, useTranslations } from "next-intl";
 import type { Candidate, Reason, Urgency } from "@/lib/triage/types";
 
-const URGENCY_STYLE: Record<Urgency, { bg: string; fg: string }> = {
-  low: { bg: "#EDF0DE", fg: "#5E6E3E" },
-  medium: { bg: "#FBF3DC", fg: "#8A6D1F" },
-  high: { bg: "#FBE9DC", fg: "#A85B1F" },
-  critical: { bg: "#F9E3DB", fg: "#A8431F" },
+const URGENCY_STYLE: Record<
+  Urgency,
+  { bg: string; fg: string; ring: string }
+> = {
+  low: { bg: "#EDF0DE", fg: "#5E6E3E", ring: "#7A8C51" },
+  medium: { bg: "#FBF3DC", fg: "#8A6D1F", ring: "#B98523" },
+  high: { bg: "#FBE9DC", fg: "#A85B1F", ring: "#C06A2A" },
+  critical: { bg: "#F9E3DB", fg: "#A8431F", ring: "#A8431F" },
 };
 
 function candidateName(c: Candidate, locale: string): string {
@@ -16,23 +19,67 @@ function candidateName(c: Candidate, locale: string): string {
   return c.name_en;
 }
 
+/** Circular confidence gauge — the card's visual anchor. */
+function ConfidenceRing({
+  pct,
+  color,
+  label,
+}: {
+  pct: number;
+  color: string;
+  label: string;
+}) {
+  const r = 24;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r={r} stroke="var(--line-2)" strokeWidth="6" fill="none" />
+        <circle
+          cx="32"
+          cy="32"
+          r={r}
+          stroke={color}
+          strokeWidth="6"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${(c * pct).toFixed(1)} ${c.toFixed(1)}`}
+          transform="rotate(-90 32 32)"
+        />
+        <text
+          x="32"
+          y="37"
+          textAnchor="middle"
+          fontSize="14.5"
+          fontWeight="700"
+          fill="var(--ink)"
+        >
+          {Math.round(pct * 100)}%
+        </text>
+      </svg>
+      <span className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-mut2">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 /**
- * Explainable triage result with a strict reading order:
- *   1. verdict   — suspected disease + urgency + confidence
- *   2. action    — "what to do now" advisory (the part a farmer needs)
- *   3. evidence  — matched signs + reasons for the top candidate
- *   4. appendix  — other possibilities, collapsed by default
- *   5. hard rule — disclaimer, always visible
+ * Triage result as a "diagnosis ticket":
+ *   urgency banner → verdict + confidence gauge → matched signs →
+ *   numbered what-to-do steps → full analysis (collapsed) → disclaimer.
  */
 export function TriageCard({
   candidates,
   urgency,
   advisory,
+  meta,
   compact = false,
 }: {
   candidates: Candidate[];
   urgency: Urgency;
   advisory: string | null;
+  meta?: string;
   compact?: boolean;
 }) {
   const t = useTranslations();
@@ -49,140 +96,189 @@ export function TriageCard({
     ? advisory
         .split("\n")
         .slice(compact ? 0 : 1, compact ? 4 : -1)
-        .filter((l) => l.trim())
+        .map((l) => l.replace(/^[-•·]\s*/, "").trim())
+        .filter(Boolean)
     : [];
 
   return (
     <div className="card overflow-hidden">
-      {/* ---- 1 · verdict ---- */}
-      <div className="flex items-start gap-3 px-5 pt-4 pb-4">
-        <div className="min-w-0">
-          {best ? (
-            <>
-              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-                {t("triage.suspected")}
-              </div>
-              <div className="mt-0.5 font-serif text-[21px] font-semibold leading-tight">
-                {candidateName(best, locale)}
-              </div>
-              <div className="mt-1 text-[12px] font-semibold text-mut">
-                {t("triage.confidence")} · {Math.round(best.confidence * 100)}%
-              </div>
-            </>
-          ) : (
-            <p className="pt-1 text-[13.5px] leading-relaxed text-mut">
-              {t("triage.noCandidates")}
-            </p>
-          )}
-        </div>
+      {/* ---- urgency banner ---- */}
+      <div
+        className="flex items-center gap-2.5 px-5 py-2.5"
+        style={{ background: style.bg }}
+      >
         <span
-          className="ml-auto shrink-0 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em]"
-          style={{ background: style.bg, color: style.fg }}
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ background: style.fg }}
+        />
+        <span
+          className="text-[11.5px] font-bold uppercase tracking-[0.08em]"
+          style={{ color: style.fg }}
         >
           {t(`triage.urgency.${urgency}`)}
         </span>
+        {meta && (
+          <span
+            className="ml-auto truncate text-[11.5px] font-semibold"
+            style={{ color: style.fg, opacity: 0.75 }}
+          >
+            {meta}
+          </span>
+        )}
       </div>
 
-      {/* ---- 2 · what to do now ---- */}
+      {/* ---- verdict ---- */}
+      <div className="flex items-center gap-4 px-5 pt-4 pb-3">
+        {best ? (
+          <>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("triage.suspected")}
+              </div>
+              <div className="mt-1 font-serif text-[22px] font-semibold leading-tight">
+                {candidateName(best, locale)}
+              </div>
+              {/* matched signs — the proof, right under the name */}
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {best.matched.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full bg-sage-soft px-2.5 py-1 text-[11.5px] font-semibold text-sage"
+                  >
+                    ✓ {symptomLabel(s)}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <ConfidenceRing
+              pct={best.confidence}
+              color={style.ring}
+              label={t("triage.confidence")}
+            />
+          </>
+        ) : (
+          <p className="py-1 text-[13.5px] leading-relaxed text-mut">
+            {t("triage.noCandidates")}
+          </p>
+        )}
+      </div>
+
+      {/* ---- what to do now: numbered steps ---- */}
       {advisoryLines.length > 0 && (
-        <div className="mx-5 mb-4 rounded-2xl bg-gold-soft px-4 py-3.5">
-          <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8A6D1F]">
+        <div className="px-5 pb-4 pt-1">
+          <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8A6D1F]">
             {t("triage.advisoryTitle")}
           </div>
-          <ul className="flex flex-col gap-1.5">
+          <ol className="flex flex-col gap-2">
             {advisoryLines.map((line, i) => (
-              <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-ink-2">
-                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#B98523]" />
-                {line.replace(/^[-•·]\s*/, "")}
+              <li key={i} className="flex gap-3">
+                <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold-soft text-[11.5px] font-bold text-[#8A6D1F]">
+                  {i + 1}
+                </span>
+                <span className="text-[13.5px] leading-relaxed text-ink-2">
+                  {line}
+                </span>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       )}
 
-      {/* ---- 3 · why this result ---- */}
-      {best && (
-        <div className="border-t border-line-2 px-5 py-4">
-          <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-            {t("triage.whyTitle")}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {best.matched.map((s) => (
-              <span
-                key={s}
-                className="rounded-full bg-sage-soft px-2.5 py-1 text-[11.5px] font-medium text-sage"
-              >
-                ✓ {symptomLabel(s)}
-              </span>
-            ))}
-            {!compact &&
-              best.missed.map((s) => (
-                <span
-                  key={s}
-                  className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-mut2"
-                >
-                  {symptomLabel(s)}?
-                </span>
-              ))}
-          </div>
-          {!compact && best.reasons.length > 0 && (
-            <ul className="mt-3 flex flex-col gap-1">
-              {best.reasons.map((r, j) => (
-                <li key={j} className="flex gap-2 text-[12.5px] leading-relaxed text-mut">
-                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-mut2" />
-                  {reasonText(r, t)}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* ---- 4 · other possibilities (collapsed) ---- */}
-      {!compact && others.length > 0 && (
+      {/* ---- full analysis, collapsed ---- */}
+      {!compact && best && (
         <details className="group border-t border-line-2">
-          <summary className="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-[12.5px] font-semibold text-mut transition hover:text-ink [&::-webkit-details-marker]:hidden">
-            {t("triage.othersTitle")}
-            <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-line-2 px-1 text-[10.5px] font-bold text-mut">
-              {others.length}
-            </span>
-            <span className="ml-auto text-[10px] transition group-open:rotate-180">
-              ▼
-            </span>
+          <summary className="flex cursor-pointer select-none items-center gap-2 px-5 py-3.5 text-[13px] font-semibold text-accent transition hover:bg-paper/60 [&::-webkit-details-marker]:hidden">
+            {t("triage.fullAnalysis")}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="ml-auto h-3.5 w-3.5 transition group-open:rotate-180"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </summary>
-          <div className="flex flex-col gap-4 px-5 pb-4">
-            {others.map((c) => {
-              const total = c.matched.length + c.missed.length;
-              return (
-                <div key={c.code}>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[13px] font-semibold">
-                      {candidateName(c, locale)}
-                    </span>
-                    <span className="ml-auto text-[11.5px] font-semibold text-mut">
-                      {Math.round(c.confidence * 100)}%
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line-2">
-                    <div
-                      className="h-full rounded-full bg-mut2"
-                      style={{ width: `${Math.max(4, c.confidence * 100)}%` }}
-                    />
-                  </div>
-                  <div className="mt-1.5 text-[12px] text-mut">
-                    {t("triage.reasons.symptom_match", {
-                      matched: c.matched.length,
-                      total,
-                    })}
-                  </div>
+
+          <div className="flex flex-col gap-5 px-5 pb-5 pt-1">
+            {/* why this result */}
+            <div>
+              <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("triage.whyTitle")}
+              </div>
+              <ul className="flex flex-col gap-1.5">
+                {best.reasons.map((r, j) => (
+                  <li key={j} className="flex gap-2.5 text-[13px] leading-relaxed text-ink-2">
+                    <span className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    {reasonText(r, t)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* signs not observed */}
+            {best.missed.length > 0 && (
+              <div>
+                <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                  {t("triage.notObserved")}
                 </div>
-              );
-            })}
+                <div className="flex flex-wrap gap-1.5">
+                  {best.missed.map((s) => (
+                    <span
+                      key={s}
+                      className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-mut"
+                    >
+                      {symptomLabel(s)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* other possibilities */}
+            {others.length > 0 && (
+              <div>
+                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                  {t("triage.othersTitle")}
+                </div>
+                <div className="flex flex-col gap-3">
+                  {others.map((c) => {
+                    const total = c.matched.length + c.missed.length;
+                    return (
+                      <div key={c.code} className="rounded-xl border border-line-2 px-3.5 py-2.5">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-[13px] font-semibold">
+                            {candidateName(c, locale)}
+                          </span>
+                          <span className="ml-auto text-[11.5px] font-bold text-mut">
+                            {Math.round(c.confidence * 100)}%
+                          </span>
+                        </div>
+                        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line-2">
+                          <div
+                            className="h-full rounded-full bg-mut2"
+                            style={{ width: `${Math.max(4, c.confidence * 100)}%` }}
+                          />
+                        </div>
+                        <div className="mt-1.5 text-[12px] text-mut">
+                          {t("triage.reasons.symptom_match", {
+                            matched: c.matched.length,
+                            total,
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </details>
       )}
 
-      {/* ---- 5 · hard rule: disclaimer, always ---- */}
+      {/* ---- hard rule: disclaimer, always ---- */}
       <div className="border-t border-line-2 bg-paper/60 px-5 py-3">
         <p className="text-[11.5px] leading-relaxed text-mut">
           ⚠ {t("triage.disclaimer")}

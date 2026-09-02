@@ -1,14 +1,20 @@
 import map from "@/lib/map/maharashtra.json";
 
 /**
- * Live surveillance map of Maharashtra as a floating 3D slab:
- * the real state outline extruded and tilted in CSS perspective,
- * with the 15 pilot villages as breathing sensor dots, data arcs
- * flowing to the hub (Mumbai) and a slow radar sweep.
- * Pure SVG + CSS animation — no canvas, no rAF, no client JS.
+ * Live surveillance map of Maharashtra — an extruded, perspective-tilted
+ * slab where every animation MEANS something:
+ *   · report "packets" travel from village sensors to the HQ hub
+ *   · sensor rings pulse where the network is listening
+ *   · a radar sweep scans the state
+ * Sensor/packet motion uses SVG-native SMIL animation, which keeps
+ * running even when the OS "reduce motion" setting disables CSS
+ * animations (why it previously looked frozen on some laptops).
+ * No canvas, no rAF, no client JS.
  */
 
 const ALERT_INDEX = 2; // Baramati — the demo outbreak village
+// villages that visibly stream reports (all 15 at once is noise)
+const SENDERS = [0, 2, 4, 6, 8, 11, 13];
 
 function arcPath(x1: number, y1: number, x2: number, y2: number) {
   const mx = (x1 + x2) / 2;
@@ -45,57 +51,85 @@ export function HeroMap({ caption }: { caption?: string }) {
               strokeLinejoin="round"
             />
 
-            {/* data arcs: village → hub */}
+            {/* faint data arcs: village → hub */}
             {villages.map((v, i) => (
               <path
                 key={`arc-${v.name}`}
-                className="ps-arc"
                 d={arcPath(v.x, v.y, hub.x, hub.y)}
                 stroke={
                   i === ALERT_INDEX
-                    ? "rgba(224, 122, 74, 0.5)"
-                    : "rgba(200, 214, 156, 0.24)"
+                    ? "rgba(224, 122, 74, 0.35)"
+                    : "rgba(200, 214, 156, 0.16)"
                 }
-                strokeWidth="1.1"
-                style={{ animationDelay: `${(i % 5) * -0.9}s` }}
+                strokeWidth="1"
+                strokeDasharray="2 6"
               />
             ))}
 
-            {/* hub — department HQ */}
+            {/* report packets streaming to HQ (SMIL — immune to
+                the OS reduce-motion setting) */}
+            {SENDERS.map((idx, k) => {
+              const v = villages[idx];
+              const alert = idx === ALERT_INDEX;
+              const dur = alert ? 3.2 : 4.5 + (k % 3) * 0.7;
+              const begin = `${(k * 1.35).toFixed(2)}s`;
+              return (
+                <circle
+                  key={`pkt-${v.name}`}
+                  r={alert ? 3 : 2.3}
+                  fill={alert ? "#E07A4A" : "#F3C96B"}
+                  opacity="0"
+                >
+                  <animateMotion
+                    dur={`${dur}s`}
+                    begin={begin}
+                    repeatCount="indefinite"
+                    path={arcPath(v.x, v.y, hub.x, hub.y)}
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0;0.95;0.95;0"
+                    keyTimes="0;0.08;0.85;1"
+                    dur={`${dur}s`}
+                    begin={begin}
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              );
+            })}
+
+            {/* hub — department HQ, pings when data arrives */}
             <circle cx={hub.x} cy={hub.y} r="10" fill="rgba(243,201,107,0.14)" />
             <circle cx={hub.x} cy={hub.y} r="4.5" fill="#F3C96B" />
-            <circle
-              className="ps-ring"
-              cx={hub.x}
-              cy={hub.y}
-              r="10"
-              stroke="#F3C96B"
-              strokeWidth="1.4"
-            />
+            <circle cx={hub.x} cy={hub.y} r="5" stroke="#F3C96B" strokeWidth="1.4">
+              <animate attributeName="r" values="5;16" dur="2.6s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.9;0" dur="2.6s" repeatCount="indefinite" />
+            </circle>
 
-            {/* village sensor dots */}
+            {/* village sensors — pulsing listening rings */}
             {villages.map((v, i) => {
               const alert = i === ALERT_INDEX;
               const c = alert ? "#E07A4A" : "#C8D69C";
+              const begin = `${((i * 0.4) % 3.4).toFixed(2)}s`;
               return (
                 <g key={v.name}>
-                  <circle
-                    className="ps-ring"
-                    cx={v.x}
-                    cy={v.y}
-                    r={alert ? 13 : 9}
-                    stroke={c}
-                    strokeWidth="1.3"
-                    style={{ animationDelay: `${(i * 0.35) % 3.2}s` }}
-                  />
-                  <circle
-                    className="ps-dot"
-                    cx={v.x}
-                    cy={v.y}
-                    r={alert ? 4.4 : 3.2}
-                    fill={c}
-                    style={{ animationDelay: `${(i * 0.35) % 3.2}s` }}
-                  />
+                  <circle cx={v.x} cy={v.y} r={alert ? 4.4 : 3.2} fill={c} />
+                  <circle cx={v.x} cy={v.y} r="4" stroke={c} strokeWidth="1.2">
+                    <animate
+                      attributeName="r"
+                      values={alert ? "4;15" : "4;11"}
+                      dur="3.4s"
+                      begin={begin}
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.8;0"
+                      dur="3.4s"
+                      begin={begin}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
                 </g>
               );
             })}

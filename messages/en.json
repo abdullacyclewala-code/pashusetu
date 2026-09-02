@@ -186,7 +186,9 @@
       "notifiable": "Notifiable disease — authorities must be informed"
     },
     "whyTitle": "Why this result",
-    "othersTitle": "Other possibilities"
+    "othersTitle": "Other possibilities",
+    "fullAnalysis": "See full analysis",
+    "notObserved": "Signs not observed"
   },
   "alerts": {
     "eyebrow": "Early warning",

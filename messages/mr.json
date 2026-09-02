@@ -186,7 +186,9 @@
       "notifiable": "सूचनीय आजार — अधिकाऱ्यांना कळवणे बंधनकारक आहे"
     },
     "whyTitle": "हा निकाल का",
-    "othersTitle": "इतर शक्यता"
+    "othersTitle": "इतर शक्यता",
+    "fullAnalysis": "संपूर्ण विश्लेषण पहा",
+    "notObserved": "न आढळलेली लक्षणे"
   },
   "alerts": {
     "eyebrow": "पूर्व इशारा",
