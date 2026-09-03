@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
 import { TriageCard } from "@/components/triage/TriageCard";
-import {
-  XIcon,
-  CameraIcon,
-  InfoIcon,
-  ClockIcon,
-  PinIcon,
-} from "@/components/icons";
+import { XIcon, CameraIcon, InfoIcon, ClockIcon, PinIcon } from "@/components/icons";
 import type { TriageRow } from "@/lib/triage/types";
 import type { Candidate } from "@/lib/triage/types";
 
@@ -50,6 +45,9 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
   const format = useFormatter();
   const locale = useLocale();
   const [selected, setSelected] = useState<ReportRow | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!selected) return;
@@ -64,9 +62,6 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
       document.body.style.overflow = prev;
     };
   }, [selected]);
-
-  const symptomLabel = (s: string) =>
-    t.has(`symptoms.${s}`) ? t(`symptoms.${s}`) : s.replace(/_/g, " ");
 
   if (reports.length === 0) return null;
 
@@ -91,7 +86,6 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-paper text-ink-2 group-hover:bg-card">
                   <SpeciesIcon species={r.species} className="h-6 w-6" />
                 </span>
-
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[15px] font-bold leading-tight text-ink">
@@ -148,7 +142,6 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                   )}
                   {isPending && <div className="progress-run mt-2 max-w-[160px]" />}
                 </div>
-
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line bg-card text-mut group-hover:border-ink group-hover:text-ink">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 6l6 6-6 6" />
@@ -160,174 +153,253 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
         })}
       </div>
 
-      {/* ── DETAIL DRAWER ── */}
-      {selected && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center md:items-center md:p-6">
-          <button
-            aria-label="Close"
-            className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
-            onClick={() => setSelected(null)}
-          />
-          <div className="relative flex max-h-[92vh] w-full max-w-[640px] flex-col overflow-hidden rounded-t-[28px] border border-line bg-card shadow-2xl md:rounded-[28px] animate-[pageIn_0.24s_ease]">
-            <div className="grid place-items-center pt-3 md:hidden">
-              <span className="h-1.5 w-10 rounded-full bg-line" />
-            </div>
-
-            <div className="flex items-start gap-4 border-b border-line-2 px-6 py-4">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-paper text-ink-2">
-                <SpeciesIcon species={selected.species} className="h-7 w-7" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-serif text-[20px] font-semibold leading-tight">
+      {mounted &&
+        selected &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center md:p-6">
+            <button
+              aria-label="Close"
+              className="absolute inset-0 bg-ink/50 backdrop-blur-[3px]"
+              onClick={() => setSelected(null)}
+            />
+            <div className="relative flex h-[92dvh] max-h-[92dvh] w-full max-w-[640px] flex-col overflow-hidden rounded-t-[28px] border border-line bg-card shadow-2xl md:h-auto md:max-h-[88vh] md:rounded-[28px] animate-[pageIn_0.24s_ease]">
+              <div className="grid shrink-0 place-items-center pt-3 md:hidden">
+                <span className="h-1.5 w-10 rounded-full bg-line" />
+              </div>
+              <div className="flex shrink-0 items-start gap-4 border-b border-line-2 px-6 py-4">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-paper text-ink-2">
+                  <SpeciesIcon species={selected.species} className="h-7 w-7" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-serif text-[20px] font-semibold leading-tight">
+                      {(() => {
+                        const tr =
+                          selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0];
+                        return tr?.disease_candidates[0]
+                          ? candidateName(tr.disease_candidates[0], locale)
+                          : t("cases.pendingTriage");
+                      })()}
+                    </h3>
                     {(() => {
-                      const tr = selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0];
-                      return tr?.disease_candidates[0] ? candidateName(tr.disease_candidates[0], locale) : t("cases.pendingTriage");
+                      const tr =
+                        selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0];
+                      if (!tr) return null;
+                      const col = URGENCY_COLOR[tr.urgency];
+                      return (
+                        <span
+                          className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+                          style={{ background: col.bg, color: col.fg }}
+                        >
+                          {t(`triage.urgency.${tr.urgency}`)}
+                        </span>
+                      );
                     })()}
-                  </h3>
+                  </div>
+                  <div className="mt-1 text-[12.5px] text-mut">
+                    {[selected.village, selected.taluka, selected.district].filter(Boolean).join(", ")} ·{" "}
+                    {t(`species.${selected.species}`)} · {selected.sick_count} {t("cases.sick")}
+                    {selected.dead_count > 0 ? ` · ${selected.dead_count} ${t("cases.dead")}` : ""} ·{" "}
+                    {format.dateTime(new Date(selected.created_at), { dateStyle: "medium", timeStyle: "short" })}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-card text-mut hover:border-ink hover:text-ink"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+                <div className="flex flex-col gap-5 pb-[env(safe-area-inset-bottom)]">
                   {(() => {
-                    const tr = selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0];
-                    if (!tr) return null;
-                    const col = URGENCY_COLOR[tr.urgency];
+                    const triage =
+                      selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0];
+                    if (!triage) {
+                      return (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3 rounded-2xl border border-line-2 bg-paper/70 px-4 py-4 text-[13.5px] text-mut">
+                            <span className="h-2 w-2 animate-pulse rounded-full bg-sage" />
+                            {t("triage.pendingResult")} — {t("triage.pendingHint")}
+                          </div>
+                          {selected.photo_url ? (
+                            <div className="overflow-hidden rounded-2xl border border-line bg-paper">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={selected.photo_url}
+                                alt="Report photo"
+                                className="max-h-[420px] w-full bg-paper object-contain"
+                                loading="eager"
+                                decoding="async"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                                  const fb = document.getElementById(`f-photo-${selected.id}`);
+                                  if (fb) fb.style.display = "block";
+                                }}
+                              />
+                              <div
+                                id={`f-photo-${selected.id}`}
+                                style={{ display: "none" }}
+                                className="px-4 py-6 text-center text-[13px] text-mut"
+                              >
+                                Photo failed to load —{" "}
+                                <a
+                                  href={selected.photo_url!}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="font-semibold text-accent underline"
+                                >
+                                  open original
+                                </a>
+                              </div>
+                            </div>
+                          ) : null}
+                          {selected.free_text && (
+                            <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
+                              <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                                Your note
+                              </div>
+                              <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     return (
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
-                        style={{ background: col.bg, color: col.fg }}
-                      >
-                        {t(`triage.urgency.${tr.urgency}`)}
-                      </span>
+                      <div className="flex flex-col gap-5">
+                        <TriageCard
+                          candidates={triage.disease_candidates}
+                          urgency={triage.urgency}
+                          advisory={triage.advisory_text}
+                          species={selected.species}
+                          meta={`${t(`species.${selected.species}`)} · ${selected.village ?? ""}`}
+                        />
+
+                        {selected.photo_url ? (
+                          <div className="overflow-hidden rounded-2xl border border-line bg-paper">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={selected.photo_url}
+                              alt="Report photo"
+                              className="max-h-[420px] w-full bg-paper object-contain"
+                              loading="eager"
+                              decoding="async"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                                const fb = document.getElementById(`f-photo2-${selected.id}`);
+                                if (fb) fb.style.display = "block";
+                              }}
+                            />
+                            <div
+                              id={`f-photo2-${selected.id}`}
+                              style={{ display: "none" }}
+                              className="px-4 py-6 text-center text-[13px] text-mut"
+                            >
+                              Photo failed to load —{" "}
+                              <a
+                                href={selected.photo_url!}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-semibold text-accent underline"
+                              >
+                                open original
+                              </a>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 border-t border-line-2 px-3 py-2 text-[11.5px] text-mut">
+                              <span className="flex items-center gap-1.5">
+                                <CameraIcon className="h-3.5 w-3.5" />
+                                Photo you attached
+                              </span>
+                              <a
+                                href={selected.photo_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-semibold text-ink-2 underline"
+                              >
+                                Open
+                              </a>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {selected.free_text && (
+                          <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
+                            <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                              Your note
+                            </div>
+                            <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
+                          </div>
+                        )}
+
+                        <div className="rounded-2xl border border-line-2 bg-paper/60 px-4 py-3.5">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="grid h-7 w-7 place-items-center rounded-xl bg-sage-soft text-sage">
+                              <InfoIcon className="h-4 w-4" />
+                            </span>
+                            <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">Report details</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-[13px]">
+                            <div>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Symptoms</div>
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {(selected.symptoms ?? []).map((s) => (
+                                  <span key={s} className="rounded-full bg-card border border-line px-2.5 py-1 text-[11.5px]">
+                                    {t.has(`symptoms.${s}`) ? t(`symptoms.${s}`) : s.replace(/_/g, " ")}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <div>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Counts</div>
+                                <div className="mt-1 font-semibold">
+                                  {selected.sick_count} sick{selected.dead_count > 0 ? `, ${selected.dead_count} dead` : ""}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Location</div>
+                                <div className="mt-1 flex items-center gap-1">
+                                  <PinIcon className="h-3.5 w-3.5 text-mut" />
+                                  {[selected.village, selected.taluka, selected.district]
+                                    .filter(Boolean)
+                                    .join(", ") || "—"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Captured</div>
+                                <div className="mt-1 flex items-center gap-1 text-mut">
+                                  <ClockIcon className="h-3.5 w-3.5" />
+                                  {format.dateTime(new Date(selected.created_at), {
+                                    dateStyle: "short",
+                                    timeStyle: "short",
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })()}
                 </div>
-                <div className="mt-1 text-[12.5px] text-mut">
-                  {[selected.village, selected.taluka, selected.district].filter(Boolean).join(", ")} ·{" "}
-                  {t(`species.${selected.species}`)} · {selected.sick_count} {t("cases.sick")}
-                  {selected.dead_count > 0 ? ` · ${selected.dead_count} ${t("cases.dead")}` : ""} ·{" "}
-                  {format.dateTime(new Date(selected.created_at), { dateStyle: "medium", timeStyle: "short" })}
-                </div>
               </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-card text-mut hover:border-ink hover:text-ink"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
+
+              <div className="flex shrink-0 items-center border-t border-line-2 bg-paper/90 px-6 py-4 backdrop-blur supports-[padding:env(safe-area-inset-bottom)]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <button
+                  onClick={() => setSelected(null)}
+                  className="w-full rounded-full border border-line bg-card px-4 py-3 text-[14px] font-bold text-ink-2 hover:border-ink"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-
-            <div className="overflow-y-auto px-6 py-5">
-              {(() => {
-                const triage = selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0];
-                if (!triage) {
-                  return (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-3 rounded-2xl border border-line-2 bg-paper/70 px-4 py-4 text-[13.5px] text-mut">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-sage" />
-                        {t("triage.pendingResult")} — {t("triage.pendingHint")}
-                      </div>
-                      {selected.photo_url && (
-                        <div className="overflow-hidden rounded-2xl border border-line bg-paper">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={selected.photo_url} alt="Report photo" className="max-h-[360px] w-full object-cover" />
-                        </div>
-                      )}
-                      {selected.free_text && (
-                        <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
-                          <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Your note</div>
-                          <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="flex flex-col gap-5">
-                    {/* full triage card inside drawer */}
-                    <TriageCard
-                      candidates={triage.disease_candidates}
-                      urgency={triage.urgency}
-                      advisory={triage.advisory_text}
-                      species={selected.species}
-                      meta={`${t(`species.${selected.species}`)} · ${selected.village ?? ""}`}
-                    />
-
-                    {/* extra context - photo + free text + symptoms */}
-                    {selected.photo_url && (
-                      <div className="overflow-hidden rounded-2xl border border-line bg-paper">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={selected.photo_url} alt="Report photo" className="max-h-[360px] w-full object-cover" />
-                        <div className="flex items-center gap-2 px-3 py-2 text-[11.5px] text-mut">
-                          <CameraIcon className="h-3.5 w-3.5" />
-                          Photo you attached
-                        </div>
-                      </div>
-                    )}
-
-                    {selected.free_text && (
-                      <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
-                        <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Your note</div>
-                        <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
-                      </div>
-                    )}
-
-                    <div className="rounded-2xl border border-line-2 bg-paper/60 px-4 py-3.5">
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="grid h-7 w-7 place-items-center rounded-xl bg-sage-soft text-sage">
-                          <InfoIcon className="h-4 w-4" />
-                        </span>
-                        <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">Report details</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-[13px]">
-                        <div>
-                          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Symptoms</div>
-                          <div className="mt-1 flex flex-wrap gap-1.5">
-                            {(selected.symptoms ?? []).map((s) => (
-                              <span key={s} className="rounded-full bg-card border border-line px-2.5 py-1 text-[11.5px]">
-                                {symptomLabel(s)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <div>
-                            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Counts</div>
-                            <div className="mt-1 font-semibold">
-                              {selected.sick_count} sick{selected.dead_count > 0 ? `, ${selected.dead_count} dead` : ""}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Location</div>
-                            <div className="mt-1 flex items-center gap-1">
-                              <PinIcon className="h-3.5 w-3.5 text-mut" />
-                              {[selected.village, selected.taluka, selected.district].filter(Boolean).join(", ") || "—"}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Captured</div>
-                            <div className="mt-1 flex items-center gap-1 text-mut">
-                              <ClockIcon className="h-3.5 w-3.5" />
-                              {format.dateTime(new Date(selected.created_at), { dateStyle: "short", timeStyle: "short" })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className="border-t border-line-2 bg-paper/80 px-6 py-4 backdrop-blur">
-              <button
-                onClick={() => setSelected(null)}
-                className="w-full rounded-full border border-line bg-card px-4 py-3 text-[14px] font-bold text-ink-2 hover:border-ink"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
