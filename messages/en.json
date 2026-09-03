@@ -165,7 +165,10 @@
     "dead": "dead",
     "emptyBody": "Reports from your district appear here the moment farmers submit them.",
     "decideError": "Could not save the decision — please try again.",
-    "flywheelNote": "Every confirm or reject is stored as a labelled example — your decisions quietly train the next version of the triage engine."
+    "flywheelNote": "Every confirm or reject is stored as a labelled example — your decisions quietly train the next version of the triage engine.",
+    "photo": "Photo",
+    "note": "Note",
+    "photoNote": "Photo + note"
   },
   "herd": {
     "eyebrow": "Herd health",
@@ -223,7 +226,19 @@
     "actionNote": "Quick action can prevent spread and protect the herd.",
     "analysisSub": "Reasoning, sign match details and other possibilities.",
     "pendingHint": "This may take a few seconds.",
-    "urgencyNote": "Urgency reflects how dangerous the suspected disease is and whether deaths were reported — not only the confidence score."
+    "urgencyNote": "Urgency reflects how dangerous the suspected disease is and whether deaths were reported — not only the confidence score.",
+    "advisory": {
+      "intro": "Suspected {disease}, {confidence}% confidence.",
+      "isolate": "Isolate sick animals from the rest of the herd immediately.",
+      "care": "Provide clean water, shade and soft feed; avoid stress.",
+      "stopSpread": "Do not move, sell or share equipment from affected animals.",
+      "zoonotic": "This disease can spread to humans — wear gloves, wash hands, and do not consume milk from affected animals.",
+      "notifiable": "This is a notifiable disease — inform your local veterinary officer or call the 1962 helpline immediately.",
+      "contactVet": "Contact your nearest veterinarian or call the 1962 helpline.",
+      "listen": "Listen",
+      "stopListen": "Stop",
+      "audioUnavailable": "Audio playback is not available here."
+    }
   },
   "alerts": {
     "eyebrow": "Early warning",
@@ -240,7 +255,35 @@
     "confirm": "Confirm",
     "remove": "Remove",
     "working": "Please wait…",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "open": "Open",
+    "openOriginal": "open original",
+    "photoFailedToLoad": "Photo failed to load —",
+    "yourNote": "Your note",
+    "farmerNote": "Farmer note",
+    "reportDetails": "Report details",
+    "symptomsLabel": "Symptoms",
+    "countsLabel": "Counts",
+    "locationLabel": "Location",
+    "capturedLabel": "Captured",
+    "photoYouAttached": "Photo you attached",
+    "close": "Close",
+    "animalsAffected": "Animals affected",
+    "reportedSigns": "Reported signs",
+    "noChecklistSigns": "No checklist signs — free text only",
+    "linkedAnimal": "Linked animal",
+    "tagValue": "Tag {tag}",
+    "animalValue": "Animal {id}",
+    "notLinked": "Not linked",
+    "reportedBy": "Reported by",
+    "triageResult": "Triage result",
+    "confidencePct": "{pct}% confidence",
+    "otherPossibilities": "Other possibilities",
+    "reportMeta": "Report ID: {id} · Status: {status} · Captured: {date}",
+    "awaitingDecision": "Awaiting officer decision",
+    "confirmedNotified": "Confirmed — field team notified",
+    "rejectedClosed": "Rejected — closed",
+    "farmerPhoto": "Farmer attached photo"
   },
   "species": {
     "cattle": "Cattle",

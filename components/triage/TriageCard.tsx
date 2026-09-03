@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Candidate, Reason, Urgency } from "@/lib/triage/types";
+import { candidateName } from "@/lib/triage/name";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
+import { AdvisoryPanel } from "@/components/triage/AdvisoryPanel";
 import {
   InfoIcon,
   CheckCircleIcon,
@@ -21,12 +23,6 @@ const URGENCY_STYLE: Record<
   high: { bg: "#FBE9DC", fg: "#A85B1F", ring: "#C06A2A" },
   critical: { bg: "#F9E3DB", fg: "#A8431F", ring: "#A8431F" },
 };
-
-function candidateName(c: Candidate, locale: string): string {
-  if (locale === "hi" && c.name_hi) return c.name_hi;
-  if (locale === "mr" && c.name_mr) return c.name_mr;
-  return c.name_en;
-}
 
 /** Circular confidence gauge. Compact on phones — the wrapper div sets
  *  the rendered size, the SVG scales with it. */
@@ -87,14 +83,12 @@ function ConfidenceRing({
 export function TriageCard({
   candidates,
   urgency,
-  advisory,
   meta,
   species,
   compact = false,
 }: {
   candidates: Candidate[];
   urgency: Urgency;
-  advisory: string | null;
   meta?: string;
   species?: string;
   compact?: boolean;
@@ -110,14 +104,6 @@ export function TriageCard({
   // KB symptom keys not yet translated fall back to a readable label
   const symptomLabel = (s: string) =>
     t.has(`symptoms.${s}`) ? t(`symptoms.${s}`) : s.replace(/_/g, " ");
-
-  const advisoryLines = advisory
-    ? advisory
-        .split("\n")
-        .slice(compact ? 0 : 1, compact ? 4 : -1)
-        .map((l) => l.replace(/^[-•·]\s*/, "").trim())
-        .filter(Boolean)
-    : [];
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -241,44 +227,33 @@ export function TriageCard({
       </div>
 
       {/* ================= 2 · WHAT TO DO NOW ================= */}
-      {advisoryLines.length > 0 && (
-        <div className="card overflow-hidden">
-          <div className="grid grid-cols-[1fr_230px] max-[760px]:grid-cols-1">
-            <div className="px-6 py-5 max-[760px]:px-5">
-              <div className="flex items-center gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold-soft text-[#8A6D1F]">
-                  <ClipboardIcon className="h-[18px] w-[18px]" />
-                </span>
-                <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">
-                  {t("triage.advisoryTitle")}
-                </span>
-              </div>
-              <ol className="mt-4 flex flex-col gap-2.5">
-                {advisoryLines.map((line, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="mt-px grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-gold-soft text-[12px] font-bold text-[#8A6D1F]">
-                      {i + 1}
-                    </span>
-                    <span className="text-[13.5px] leading-relaxed text-ink-2">
-                      {line}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+      <div className="card overflow-hidden">
+        <div className="grid grid-cols-[1fr_230px] max-[760px]:grid-cols-1">
+          <div className="px-6 py-5 max-[760px]:px-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold-soft text-[#8A6D1F]">
+                <ClipboardIcon className="h-[18px] w-[18px]" />
+              </span>
+              <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">
+                {t("triage.advisoryTitle")}
+              </span>
             </div>
-            {species && (
-              <div className="hidden flex-col items-center justify-center gap-3.5 border-l border-line-2 px-6 py-5 text-center min-[761px]:flex">
-                <span className="grid h-24 w-24 place-items-center rounded-full bg-accent-soft/60 text-ink-2">
-                  <SpeciesIcon species={species} className="h-12 w-12" />
-                </span>
-                <p className="max-w-[180px] text-[12.5px] leading-relaxed text-mut">
-                  {t("triage.actionNote")}
-                </p>
-              </div>
-            )}
+            <div className="mt-4">
+              <AdvisoryPanel candidate={best} compact={compact} />
+            </div>
           </div>
+          {species && (
+            <div className="hidden flex-col items-center justify-center gap-3.5 border-l border-line-2 px-6 py-5 text-center min-[761px]:flex">
+              <span className="grid h-24 w-24 place-items-center rounded-full bg-accent-soft/60 text-ink-2">
+                <SpeciesIcon species={species} className="h-12 w-12" />
+              </span>
+              <p className="max-w-[180px] text-[12.5px] leading-relaxed text-mut">
+                {t("triage.actionNote")}
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ================= 3 · FULL ANALYSIS ================= */}
       {!compact && best && (

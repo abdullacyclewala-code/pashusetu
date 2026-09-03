@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/AppShell";
+import { LocalePrefSync } from "@/components/LocalePrefSync";
 import { getSessionProfile } from "@/lib/data/session";
 
 export default async function DashboardLayout({
@@ -10,5 +11,10 @@ export default async function DashboardLayout({
   const profile = await getSessionProfile();
   if (!profile) redirect("/login");
 
-  return <AppShell profile={profile}>{children}</AppShell>;
+  return (
+    <>
+      <LocalePrefSync profile={profile} />
+      <AppShell profile={profile}>{children}</AppShell>
+    </>
+  );
 }

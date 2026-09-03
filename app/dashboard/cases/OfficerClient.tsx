@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
+import { AdvisoryPanel } from "@/components/triage/AdvisoryPanel";
+import { candidateName } from "@/lib/triage/name";
 import {
   CheckIcon,
   XIcon,
@@ -40,12 +42,6 @@ const CHIP: Record<string, { bg: string; fg: string }> = {
   high: { bg: "#FBE9DC", fg: "#A85B1F" },
   critical: { bg: "#F9E3DB", fg: "#A8431F" },
 };
-
-function candidateName(c: Candidate, locale: string): string {
-  if (locale === "hi" && c.name_hi) return c.name_hi;
-  if (locale === "mr" && c.name_mr) return c.name_mr;
-  return c.name_en;
-}
 
 type Filter = "all" | "review" | "decided";
 
@@ -409,7 +405,7 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                       {hasExtra && (
                         <span className="flex items-center gap-1 rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-mut">
                           {r.photo_url && <CameraIcon className="h-3 w-3" />}
-                          {r.photo_url && r.free_text ? "Photo + note" : r.photo_url ? "Photo" : "Note"}
+                          {r.photo_url && r.free_text ? t("cases.photoNote") : r.photo_url ? t("cases.photo") : t("cases.note")}
                         </span>
                       )}
                       {isNew && (
@@ -487,7 +483,7 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
         createPortal(
           <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center md:p-6">
             <button
-              aria-label="Close"
+              aria-label={t("common.close")}
               className="absolute inset-0 bg-ink/50 backdrop-blur-[3px]"
               onClick={() => setSelected(null)}
             />
@@ -557,15 +553,15 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                         style={{ display: "none" }}
                         className="px-4 py-6 text-center text-[13px] text-mut"
                       >
-                        Photo failed to load —{" "}
+                        {t("common.photoFailedToLoad")}{" "}
                         <a href={selected.photo_url} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">
-                          open original
+                          {t("common.openOriginal")}
                         </a>
                       </div>
                       <div className="flex items-center justify-between gap-2 border-t border-line-2 px-3 py-2 text-[11.5px] text-mut">
                         <span className="flex items-center gap-1.5">
                           <CameraIcon className="h-3.5 w-3.5" />
-                          Farmer attached photo
+                          {t("common.farmerPhoto")}
                         </span>
                         <a
                           href={selected.photo_url}
@@ -581,20 +577,20 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
 
                   {selected.free_text && (
                     <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
-                      <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Farmer note</div>
+                      <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("common.farmerNote")}</div>
                       <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-2xl border border-line bg-paper px-4 py-3">
-                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Animals affected</div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("common.animalsAffected")}</div>
                       <div className="mt-1 font-serif text-[18px] font-semibold">
-                        {selected.sick_count} sick{selected.dead_count > 0 ? ` · ${selected.dead_count} dead` : ""}
+                        {selected.sick_count} {t("cases.sick")}{selected.dead_count > 0 ? ` · ${selected.dead_count} ${t("cases.dead")}` : ""}
                       </div>
                     </div>
                     <div className="rounded-2xl border border-line bg-paper px-4 py-3">
-                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Location</div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("common.locationLabel")}</div>
                       <div className="mt-1 text-[13px] font-semibold leading-snug">
                         {[selected.village, selected.taluka, selected.district].filter(Boolean).join(", ") || "—"}
                       </div>
@@ -607,7 +603,7 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                   </div>
 
                   <div>
-                    <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Reported signs</div>
+                    <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("common.reportedSigns")}</div>
                     <div className="flex flex-wrap gap-1.5">
                       {(selected.symptoms ?? []).map((s) => (
                         <span
@@ -618,25 +614,25 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                         </span>
                       ))}
                       {(selected.symptoms ?? []).length === 0 && (
-                        <span className="text-[13px] text-mut">No checklist signs — free text only</span>
+                        <span className="text-[13px] text-mut">{t("common.noChecklistSigns")}</span>
                       )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
                     <div className="rounded-2xl border border-line-2 bg-paper/60 px-4 py-3">
-                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Linked animal</div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("common.linkedAnimal")}</div>
                       <div className="mt-1 text-[13px] font-semibold">
                         {selected.animals?.tag_id
-                          ? `Tag ${selected.animals.tag_id}`
+                          ? t("common.tagValue", { tag: selected.animals.tag_id })
                           : selected.animal_id
-                            ? `Animal ${selected.animal_id.slice(0, 8)}…`
-                            : "Not linked"}
+                            ? t("common.animalValue", { id: selected.animal_id.slice(0, 8) })
+                            : t("common.notLinked")}
                       </div>
                       {selected.animals?.breed && <div className="text-[12px] text-mut">{selected.animals.breed}</div>}
                     </div>
                     <div className="rounded-2xl border border-line-2 bg-paper/60 px-4 py-3">
-                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">Reported by</div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("common.reportedBy")}</div>
                       <div className="mt-1 text-[13px] font-semibold">{selected.reporter?.name ?? "—"}</div>
                       <div className="text-[12px] text-mut">
                         {[selected.reporter?.village, selected.reporter?.phone].filter(Boolean).join(" · ") ||
@@ -651,20 +647,18 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                         <span className="grid h-7 w-7 place-items-center rounded-xl bg-sage-soft text-sage">
                           <InfoIcon className="h-4 w-4" />
                         </span>
-                        <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">Triage result</span>
+                        <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">{t("common.triageResult")}</span>
                         <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-mut">
                           <ClockIcon className="h-3.5 w-3.5" />
-                          {Math.round((selected.triage_results[0].confidence ?? 0) * 100)}% confidence
+                          {t("common.confidencePct", { pct: Math.round((selected.triage_results[0].confidence ?? 0) * 100) })}
                         </span>
                       </div>
                       <div className="border-t border-line-2 px-4 py-3">
-                        <div className="text-[13px] leading-relaxed text-ink-2">
-                          {selected.triage_results[0].advisory_text ?? "—"}
-                        </div>
+                        <AdvisoryPanel candidate={selected.triage_results[0].disease_candidates?.[0]} />
                         {selected.triage_results[0].disease_candidates?.length > 1 && (
                           <div className="mt-3">
                             <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-                              Other possibilities
+                              {t("common.otherPossibilities")}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                               {selected.triage_results[0].disease_candidates.slice(1, 4).map((c: Candidate) => (
@@ -680,10 +674,13 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                   )}
 
                   <div className="rounded-xl bg-paper/60 px-3 py-2 text-[11px] text-mut">
-                    Report ID: {selected.id} · Status: {selected.status} · Captured:{" "}
-                    {selected.offline_ts
-                      ? format.dateTime(new Date(selected.offline_ts), { dateStyle: "short", timeStyle: "short" })
-                      : format.dateTime(new Date(selected.created_at), { dateStyle: "short", timeStyle: "short" })}
+                    {t("common.reportMeta", {
+                      id: selected.id,
+                      status: selected.status,
+                      date: selected.offline_ts
+                        ? format.dateTime(new Date(selected.offline_ts), { dateStyle: "short", timeStyle: "short" })
+                        : format.dateTime(new Date(selected.created_at), { dateStyle: "short", timeStyle: "short" }),
+                    })}
                   </div>
                 </div>
               </div>
@@ -711,15 +708,15 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
                 ) : selected.cases[0]?.status === "confirmed" ? (
                   <div className="flex w-full items-center justify-center gap-2 rounded-full bg-sage-soft px-4 py-3 text-[14px] font-bold text-sage">
                     <CheckIcon className="h-4 w-4" />
-                    {t("cases.confirmedChip")} — field team notified
+                    {t("common.confirmedNotified")}
                   </div>
                 ) : selected.cases[0]?.status === "rejected" ? (
                   <div className="flex w-full items-center justify-center gap-2 rounded-full bg-paper px-4 py-3 text-[14px] font-bold text-mut">
                     <XIcon className="h-4 w-4" />
-                    {t("cases.rejectedChip")} — closed
+                    {t("common.rejectedClosed")}
                   </div>
                 ) : (
-                  <div className="w-full text-center text-[13px] text-mut">Awaiting officer decision</div>
+                  <div className="w-full text-center text-[13px] text-mut">{t("common.awaitingDecision")}</div>
                 )}
               </div>
             </div>

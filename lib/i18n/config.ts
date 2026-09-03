@@ -8,3 +8,17 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   hi: "हिं",
   mr: "मरा",
 };
+
+/** BCP-47 speech tag for text-to-speech (browser SpeechSynthesis + Bhashini). */
+export const SPEECH_LANG: Record<Locale, string> = {
+  en: "en-IN",
+  hi: "hi-IN",
+  mr: "mr-IN",
+};
+
+/** Bhashini (GoI) uses bare ISO-639-1 codes. */
+export const BHASHINI_LANG: Record<Locale, string> = {
+  en: "en",
+  hi: "hi",
+  mr: "mr",
+};

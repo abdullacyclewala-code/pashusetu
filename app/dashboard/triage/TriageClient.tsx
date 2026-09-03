@@ -7,7 +7,7 @@ import { SpeciesIcon } from "@/components/SpeciesIcon";
 import { TriageCard } from "@/components/triage/TriageCard";
 import { XIcon, CameraIcon, InfoIcon, ClockIcon, PinIcon } from "@/components/icons";
 import type { TriageRow } from "@/lib/triage/types";
-import type { Candidate } from "@/lib/triage/types";
+import { candidateName } from "@/lib/triage/name";
 
 interface ReportRow {
   id: string;
@@ -33,12 +33,6 @@ const URGENCY_COLOR: Record<string, { bg: string; fg: string; bar: string }> = {
   high: { bg: "#FBE9DC", fg: "#A85B1F", bar: "#C06A2A" },
   critical: { bg: "#F9E3DB", fg: "#A8431F", bar: "#A8431F" },
 };
-
-function candidateName(c: Candidate, locale: string): string {
-  if (locale === "hi" && c.name_hi) return c.name_hi;
-  if (locale === "mr" && c.name_mr) return c.name_mr;
-  return c.name_en;
-}
 
 export function TriageClient({ reports }: { reports: ReportRow[] }) {
   const t = useTranslations();
@@ -158,7 +152,7 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
         createPortal(
           <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center md:p-6">
             <button
-              aria-label="Close"
+              aria-label={t("common.close")}
               className="absolute inset-0 bg-ink/50 backdrop-blur-[3px]"
               onClick={() => setSelected(null)}
             />
@@ -244,14 +238,14 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                                 style={{ display: "none" }}
                                 className="px-4 py-6 text-center text-[13px] text-mut"
                               >
-                                Photo failed to load —{" "}
+                                {t("common.photoFailedToLoad")}{" "}
                                 <a
                                   href={selected.photo_url!}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="font-semibold text-accent underline"
                                 >
-                                  open original
+                                  {t("common.openOriginal")}
                                 </a>
                               </div>
                             </div>
@@ -259,7 +253,7 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                           {selected.free_text && (
                             <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
                               <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-                                Your note
+                                {t("common.yourNote")}
                               </div>
                               <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
                             </div>
@@ -273,7 +267,6 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                         <TriageCard
                           candidates={triage.disease_candidates}
                           urgency={triage.urgency}
-                          advisory={triage.advisory_text}
                           species={selected.species}
                           meta={`${t(`species.${selected.species}`)} · ${selected.village ?? ""}`}
                         />
@@ -299,20 +292,20 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                               style={{ display: "none" }}
                               className="px-4 py-6 text-center text-[13px] text-mut"
                             >
-                              Photo failed to load —{" "}
+                              {t("common.photoFailedToLoad")}{" "}
                               <a
                                 href={selected.photo_url!}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="font-semibold text-accent underline"
                               >
-                                open original
+                                {t("common.openOriginal")}
                               </a>
                             </div>
                             <div className="flex items-center justify-between gap-2 border-t border-line-2 px-3 py-2 text-[11.5px] text-mut">
                               <span className="flex items-center gap-1.5">
                                 <CameraIcon className="h-3.5 w-3.5" />
-                                Photo you attached
+                                {t("common.photoYouAttached")}
                               </span>
                               <a
                                 href={selected.photo_url}
@@ -320,7 +313,7 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                                 rel="noreferrer"
                                 className="font-semibold text-ink-2 underline"
                               >
-                                Open
+                                {t("common.open")}
                               </a>
                             </div>
                           </div>
@@ -329,7 +322,7 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                         {selected.free_text && (
                           <div className="rounded-2xl border border-line-2 bg-paper/70 px-4 py-3.5">
                             <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
-                              Your note
+                              {t("common.yourNote")}
                             </div>
                             <p className="text-[14px] leading-relaxed text-ink-2">“{selected.free_text}”</p>
                           </div>
@@ -340,11 +333,11 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                             <span className="grid h-7 w-7 place-items-center rounded-xl bg-sage-soft text-sage">
                               <InfoIcon className="h-4 w-4" />
                             </span>
-                            <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">Report details</span>
+                            <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">{t("common.reportDetails")}</span>
                           </div>
                           <div className="grid grid-cols-2 gap-3 text-[13px]">
                             <div>
-                              <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Symptoms</div>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">{t("common.symptomsLabel")}</div>
                               <div className="mt-1 flex flex-wrap gap-1.5">
                                 {(selected.symptoms ?? []).map((s) => (
                                   <span key={s} className="rounded-full bg-card border border-line px-2.5 py-1 text-[11.5px]">
@@ -355,13 +348,14 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                             </div>
                             <div className="flex flex-col gap-2">
                               <div>
-                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Counts</div>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">{t("common.countsLabel")}</div>
                                 <div className="mt-1 font-semibold">
-                                  {selected.sick_count} sick{selected.dead_count > 0 ? `, ${selected.dead_count} dead` : ""}
+                                  {selected.sick_count} {t("cases.sick")}
+                                  {selected.dead_count > 0 ? `, ${selected.dead_count} ${t("cases.dead")}` : ""}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Location</div>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">{t("common.locationLabel")}</div>
                                 <div className="mt-1 flex items-center gap-1">
                                   <PinIcon className="h-3.5 w-3.5 text-mut" />
                                   {[selected.village, selected.taluka, selected.district]
@@ -370,7 +364,7 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                                 </div>
                               </div>
                               <div>
-                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">Captured</div>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-mut2">{t("common.capturedLabel")}</div>
                                 <div className="mt-1 flex items-center gap-1 text-mut">
                                   <ClockIcon className="h-3.5 w-3.5" />
                                   {format.dateTime(new Date(selected.created_at), {
@@ -393,7 +387,7 @@ export function TriageClient({ reports }: { reports: ReportRow[] }) {
                   onClick={() => setSelected(null)}
                   className="w-full rounded-full border border-line bg-card px-4 py-3 text-[14px] font-bold text-ink-2 hover:border-ink"
                 >
-                  Close
+                  {t("common.close")}
                 </button>
               </div>
             </div>

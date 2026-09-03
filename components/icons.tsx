@@ -198,3 +198,20 @@ export function XIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function VolumeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.6} className={className}>
+      <path d="M11 5.5 6.5 9H3.5v6h3l4.5 3.5v-13z" />
+      <path d="M15.5 8.8a4.6 4.6 0 0 1 0 6.4M18 6.3a7.6 7.6 0 0 1 0 11.4" />
+    </svg>
+  );
+}
+
+export function StopIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.6} className={className}>
+      <rect x="7" y="7" width="10" height="10" rx="2" />
+    </svg>
+  );
+}

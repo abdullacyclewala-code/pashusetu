@@ -257,7 +257,6 @@ export function ReportWizard({
             <TriageCard
               candidates={triage.disease_candidates}
               urgency={triage.urgency}
-              advisory={triage.advisory_text}
               species={form.species || undefined}
             />
           ) : (
