@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
@@ -8,6 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
 import { AdvisoryPanel } from "@/components/triage/AdvisoryPanel";
 import { candidateName } from "@/lib/triage/name";
+import { clusterColor, clusterDiseaseName } from "@/lib/clusters";
+import type { ClusterRow } from "@/lib/alerts/types";
 import {
   CheckIcon,
   XIcon,
@@ -17,6 +20,7 @@ import {
   CameraIcon,
   InfoIcon,
   ClockIcon,
+  AlertTriangleIcon,
 } from "@/components/icons";
 import {
   OFFICER_ROW_SELECT,
@@ -47,17 +51,19 @@ type Filter = "all" | "review" | "decided";
 
 interface Props {
   initialRows: OfficerReportRow[];
+  initialClusters?: ClusterRow[];
   kpis: OfficerKpis;
   canDecide: boolean;
 }
 
-export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
+export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }: Props) {
   const t = useTranslations();
   const format = useFormatter();
   const locale = useLocale();
   const supabase = useMemo(() => createClient(), []);
 
   const [rows, setRows] = useState<OfficerReportRow[]>(initialRows);
+  const [clusters, setClusters] = useState<ClusterRow[]>(initialClusters ?? []);
   const [filter, setFilter] = useState<Filter>("all");
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -129,6 +135,37 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
       )
       .subscribe();
 
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  /* ── realtime: active clusters stream into the strip ── */
+  useEffect(() => {
+    const channel = supabase
+      .channel("officer-clusters")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "clusters" },
+        (payload) => {
+          const n = payload.new as Record<string, unknown>;
+          if (n.status !== "active") return;
+          supabase
+            .from("clusters")
+            .select(
+              "id, disease_guess, case_count, radius_km, district, village, severity, status, first_seen, last_seen, created_at, lat, lng, diseases:clusters_disease_guess_fkey(code, name_en, name_hi, name_mr)"
+            )
+            .eq("id", n.id as string)
+            .maybeSingle<ClusterRow>()
+            .then(({ data }) => {
+              if (!data) return;
+              setClusters((prev) =>
+                prev.some((c) => c.id === data.id) ? prev : [data, ...prev]
+              );
+            });
+        }
+      )
+      .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -285,6 +322,59 @@ export function OfficerClient({ initialRows, kpis, canDecide }: Props) {
           </div>
         ))}
       </div>
+
+      {/* active outbreak clusters (P5) */}
+      {clusters.length > 0 && (
+        <div className="overflow-hidden rounded-3xl border border-line bg-card shadow-[var(--shadow-card)]">
+          <div className="flex items-center gap-2.5 px-5 py-3.5">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-soft text-accent">
+              <AlertTriangleIcon className="h-4 w-4" />
+            </span>
+            <div>
+              <div className="text-[14px] font-bold text-ink">
+                {t("clusters.title")}
+              </div>
+              <div className="text-[11.5px] text-mut">{t("clusters.hint")}</div>
+            </div>
+            <Link
+              href="/dashboard/alerts"
+              className="ml-auto flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1.5 text-[12px] font-semibold text-ink-2 hover:border-ink"
+            >
+              {t("nav.alerts")}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2.5 border-t border-line-2 px-5 py-3.5">
+            {clusters.map((c) => {
+              const color = clusterColor(c.severity);
+              return (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-2.5 rounded-2xl border border-line bg-paper/60 px-3.5 py-2"
+                >
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: color }}
+                  />
+                  <span className="text-[13px] font-semibold">
+                    {clusterDiseaseName(c, locale)}
+                  </span>
+                  <span className="text-[12px] text-mut">
+                    {t("clusters.cases", { count: c.case_count })}
+                  </span>
+                  {c.radius_km != null && (
+                    <span className="text-[11.5px] text-mut2">
+                      · {t("clusters.radius", { km: c.radius_km.toFixed(1) })}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="relative isolate z-0 overflow-hidden rounded-3xl border border-line bg-card shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">

@@ -243,9 +243,47 @@
   "alerts": {
     "eyebrow": "Early warning",
     "heading": "Alerts",
-    "lede": "Outbreak warnings, field-verify flags and vaccination reminders for your area.",
+    "lede": "Outbreak warnings and field-verify flags for your area.",
     "emptyTitle": "No alerts",
-    "emptyBody": "Cluster and early-warning alerts for your village will appear here. Coming in Part 5."
+    "emptyBody": "Cluster and early-warning alerts for your district will appear here.",
+    "newBadge": "New",
+    "read": "Read",
+    "unread": "Unread",
+    "markRead": "Mark read",
+    "markAllRead": "Mark all read",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "cases": "{count, plural, one {# case} other {# cases}}",
+    "near": "near {place}",
+    "fieldVerify": "Field verification advised.",
+    "emptyFilter": "Nothing left to show — all caught up.",
+    "severity": {
+      "info": "Information",
+      "warning": "Warning",
+      "critical": "Critical"
+    }
+  },
+  "clusters": {
+    "banner": "Possible outbreak cluster detected",
+    "bannerBody": "{count, plural, one {# active cluster} other {# active clusters}} in {district}",
+    "title": "Outbreak clusters",
+    "hint": "Similar reports grouped within 5 km and 72 h",
+    "active": "Active",
+    "resolved": "Resolved",
+    "confirmed": "Confirmed",
+    "cases": "{count} cases",
+    "radius": "{km} km radius",
+    "firstSeen": "First {date}",
+    "lastSeen": "Last {date}",
+    "mapTitle": "Cluster map",
+    "mapHint": "Ring colour = severity · size = case count",
+    "empty": "No active clusters in your district yet.",
+    "emptyMap": "No clusters to show yet — they appear as similar reports group together.",
+    "newBadge": "New",
+    "severity": {
+      "warning": "Warning",
+      "critical": "Critical"
+    }
   },
   "common": {
     "back": "Back",

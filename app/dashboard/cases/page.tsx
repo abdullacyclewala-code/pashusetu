@@ -7,6 +7,11 @@ import {
   OFFICER_ROW_SELECT,
   type OfficerReportRow,
 } from "@/lib/officer/types";
+import type { ClusterRow } from "@/lib/alerts/types";
+
+const CLUSTER_SELECT =
+  "id, disease_guess, case_count, radius_km, district, village, severity, status, first_seen, last_seen, created_at, lat, lng, " +
+  "diseases:clusters_disease_guess_fkey(code, name_en, name_hi, name_mr)";
 
 /**
  * P3 — Officer command centre: district map + KPIs + live case queue.
@@ -24,26 +29,34 @@ export default async function CasesPage() {
   const supabase = await createClient();
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
 
-  const [reportsRes, dayRes, openRes, clusterRes] = await Promise.all([
-    supabase
-      .from("reports")
-      .select(OFFICER_ROW_SELECT)
-      .order("created_at", { ascending: false })
-      .limit(120)
-      .returns<OfficerReportRow[]>(),
-    supabase
-      .from("reports")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", since),
-    supabase
-      .from("cases")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["suspected", "confirmed"]),
-    supabase
-      .from("clusters")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "active"),
-  ]);
+  const [reportsRes, dayRes, openRes, clusterRes, clusterListRes] =
+    await Promise.all([
+      supabase
+        .from("reports")
+        .select(OFFICER_ROW_SELECT)
+        .order("created_at", { ascending: false })
+        .limit(120)
+        .returns<OfficerReportRow[]>(),
+      supabase
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", since),
+      supabase
+        .from("cases")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["suspected", "confirmed"]),
+      supabase
+        .from("clusters")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active"),
+      supabase
+        .from("clusters")
+        .select(CLUSTER_SELECT)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(10)
+        .returns<ClusterRow[]>(),
+    ]);
 
   const rows = reportsRes.data ?? [];
 
@@ -74,6 +87,7 @@ export default async function CasesPage() {
 
       <OfficerClient
         initialRows={rows}
+        initialClusters={clusterListRes.data ?? []}
         kpis={{
           reports24h: dayRes.count ?? 0,
           openCases: openRes.count ?? 0,
