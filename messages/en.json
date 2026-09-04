@@ -15,7 +15,8 @@
     "home": "Home",
     "alerts": "Alerts",
     "whatsapp": "WhatsApp",
-    "iot": "Sensors"
+    "iot": "Sensors",
+    "more": "More"
   },
   "titles": {
     "dash": "Overview",
@@ -139,7 +140,8 @@
     "another": "New report",
     "recent": "Recent reports",
     "photoAttached": "Photo attached",
-    "gpsResolved": "Located near {place} · accuracy about {accuracy} m. You can correct the fields below."
+    "gpsResolved": "Located near {place} · accuracy about {accuracy} m. You can correct the fields below.",
+    "gpsManual": "GPS was captured, but no trusted nearby place could be resolved. Enter the actual village/locality and district; we will not substitute a distant demo location."
   },
   "cases": {
     "eyebrow": "District surveillance",

@@ -63,7 +63,7 @@ export function ReportWizard({
     taluka: profile.taluka ?? "",
     district: profile.district ?? "",
   });
-  const [gpsState, setGpsState] = useState<"idle" | "loading" | "error">("idle");
+  const [gpsState, setGpsState] = useState<"idle" | "loading" | "error" | "manual">("idle");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<"synced" | "queued" | null>(null);
@@ -154,22 +154,30 @@ export function ReportWizard({
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
         };
-        // Resolve GPS to the nearest registered village so coordinates and
-        // officer jurisdiction cannot disagree. Manual correction stays possible.
-        const supabase = createClient();
-        const { data } = await supabase.rpc("nearest_village", {
-          p_lat: gps.lat,
-          p_lng: gps.lng,
-        });
-        const nearest = Array.isArray(data) ? data[0] : null;
-        setForm((f) => ({
-          ...f,
-          gps,
-          village: nearest?.name ?? f.village,
-          taluka: nearest?.taluka ?? f.taluka,
-          district: nearest?.district ?? f.district,
-        }));
-        setGpsState("idle");
+        // First resolve the actual coordinate. The old implementation always
+        // selected the nearest registered demo village, even when it was tens
+        // of kilometres away (for example Crawford Market → Panvel).
+        try {
+          const response = await fetch(`/api/location/reverse?lat=${gps.lat}&lng=${gps.lng}`);
+          if (!response.ok) throw new Error("reverse geocode failed");
+          const place = await response.json();
+          setForm((f) => ({ ...f, gps, village: place.village, taluka: place.taluka ?? "", district: place.district }));
+          setGpsState("idle");
+          return;
+        } catch {
+          // Offline/service fallback: accept a registered village only when it
+          // is genuinely nearby. Never relabel a distant GPS point as Panvel.
+          const supabase = createClient();
+          const { data } = await supabase.rpc("nearest_village", { p_lat: gps.lat, p_lng: gps.lng });
+          const nearest = Array.isArray(data) ? data[0] : null;
+          if (nearest && Number(nearest.distance_km) <= 10) {
+            setForm((f) => ({ ...f, gps, village: nearest.name, taluka: nearest.taluka, district: nearest.district }));
+            setGpsState("idle");
+          } else {
+            setForm((f) => ({ ...f, gps, village: "", taluka: "", district: "" }));
+            setGpsState("manual");
+          }
+        }
       },
       () => setGpsState("error"),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 }
@@ -511,7 +519,7 @@ export function ReportWizard({
                   </>
                 )}
               </button>
-              {form.gps && gpsState !== "error" && (
+              {form.gps && gpsState === "idle" && (
                 <p className="rounded-xl border border-sage/25 bg-accent-soft px-3 py-2 text-[12px] leading-relaxed text-ink-2">
                   {t("report.gpsResolved", {
                     place: [form.village, form.taluka, form.district].filter(Boolean).join(", "),
@@ -522,6 +530,11 @@ export function ReportWizard({
               {gpsState === "error" && (
                 <p className="rounded-lg bg-[#FBEDE7] px-3 py-2 text-[13px] text-accent">
                   {t("report.gpsError")}
+                </p>
+              )}
+              {gpsState === "manual" && (
+                <p className="rounded-lg bg-[#FBF3DC] px-3 py-2 text-[13px] leading-relaxed text-[#8A6D1F]">
+                  {t("report.gpsManual")}
                 </p>
               )}
               <div className="grid grid-cols-3 gap-3 max-[420px]:grid-cols-1">

@@ -109,9 +109,11 @@ export function AppShell({
   // optimistic active tab — set on click, reconciled when the URL changes
   const [target, setTarget] = useState<NavKey | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   useEffect(() => {
     setTarget(null);
     setMenuOpen(false);
+    setMobileMoreOpen(false);
   }, [pathname]);
   const active = target ?? keyFromPath(pathname);
 
@@ -119,6 +121,13 @@ export function AppShell({
   const screening = SCREENING.filter((n) => n.roles.includes(profile.role));
   const tabs = [...nav, ...screening];
   const canReport = nav.some((n) => n.key === "report");
+  const mobilePriority: NavKey[] = profile.role === "farmer" || profile.role === "pashu_mitra"
+    ? ["dash", "herd", "alerts"]
+    : profile.role === "admin"
+      ? ["dash", "cases", "alerts"]
+      : ["dash", "cases", "alerts", "triage"];
+  const mobilePrimary = mobilePriority.map((key) => tabs.find((item) => item.key === key)).filter((item): item is NavItem => Boolean(item));
+  const mobileOverflow = tabs.filter((item) => item.key !== "report" && !mobilePrimary.some((primary) => primary.key === item.key));
 
   async function logout() {
     await createClient().auth.signOut();
@@ -287,59 +296,23 @@ export function AppShell({
         <OfflineSyncBadge />
       </div>
 
-      {/* ---- bottom tabs (mobile) ---- */}
+      {/* ---- bottom tabs (mobile): max five destinations; secondary tools live in More ---- */}
       <nav className="fixed inset-x-0 bottom-0 z-[60] hidden border-t border-line bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)] max-[880px]:block">
-        {(() => {
-          const items = tabs.filter((n) => n.key !== "report");
-          const Tab = (n: NavItem) => {
-            const is = active === n.key;
-            return (
-              <Link
-                key={n.key}
-                href={n.href}
-                onClick={() => setTarget(n.key)}
-                className={`flex h-full flex-col items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold ${
-                  is ? "text-accent" : "text-mut2"
-                }`}
-              >
-                <span
-                  className={`grid h-7 w-12 place-items-center rounded-full transition ${
-                    is ? "bg-accent-soft" : ""
-                  }`}
-                >
-                  <n.icon className="h-[20px] w-[20px]" />
-                </span>
-                {t(n.key === "dash" ? "nav.home" : `nav.${n.key}`)}
-              </Link>
-            );
-          };
-          const mid = Math.ceil(items.length / 2);
-          const cols = canReport ? items.length + 1 : items.length;
-          return (
-            <div
-              className="mx-auto grid h-[64px] max-w-[480px]"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-            >
-              {items.slice(0, canReport ? mid : items.length).map(Tab)}
-              {canReport && (
-                <div className="flex items-center justify-center">
-                  <Link
-                    href="/dashboard/report"
-                    onClick={() => setTarget("report")}
-                    aria-label={t("nav.report")}
-                    className="grid h-[52px] w-[52px] -translate-y-[14px] place-items-center rounded-full border-4 border-paper bg-accent text-white shadow-[0_4px_14px_rgba(168,67,31,0.35)] transition active:scale-95"
-                  >
-                    <PlusIcon className="h-[22px] w-[22px]" />
-                  </Link>
-                </div>
-              )}
-              {canReport && items.slice(mid).map(Tab)}
-            </div>
-          );
-        })()}
+        <div className="mx-auto grid h-[64px] max-w-[480px] grid-flow-col auto-cols-fr">
+          {mobilePrimary.slice(0, canReport ? 2 : 4).map((n) => <MobileTab key={n.key} item={n} active={active} label={t(n.key === "dash" ? "nav.home" : `nav.${n.key}`)} onGo={setTarget} />)}
+          {canReport && <div className="flex items-center justify-center"><Link href="/dashboard/report" onClick={() => setTarget("report")} aria-label={t("nav.report")} className="grid h-[52px] w-[52px] -translate-y-[14px] place-items-center rounded-full border-4 border-paper bg-accent text-white shadow-[0_4px_14px_rgba(168,67,31,0.35)] transition active:scale-95"><PlusIcon className="h-[22px] w-[22px]" /></Link></div>}
+          {mobilePrimary.slice(canReport ? 2 : 4).map((n) => <MobileTab key={n.key} item={n} active={active} label={t(`nav.${n.key}`)} onGo={setTarget} />)}
+          {mobileOverflow.length > 0 && <button type="button" onClick={() => setMobileMoreOpen(true)} className={`flex h-full flex-col items-center justify-center gap-1 text-[10px] font-semibold ${mobileOverflow.some(n=>n.key===active)?"text-accent":"text-mut2"}`}><span className={`grid h-7 w-12 place-items-center rounded-full ${mobileOverflow.some(n=>n.key===active)?"bg-accent-soft":""}`}><RowsIcon className="h-5 w-5" /></span>{t("nav.more")}</button>}
+        </div>
       </nav>
+      {mobileMoreOpen && <div className="fixed inset-0 z-[80] hidden bg-black/35 max-[880px]:block" onClick={() => setMobileMoreOpen(false)}><div className="absolute inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] rounded-2xl border border-line bg-card p-3 shadow-xl" onClick={(e)=>e.stopPropagation()}><div className="mb-2 px-2 text-[11px] font-bold uppercase tracking-[.12em] text-mut2">{t("nav.more")}</div><div className="grid grid-cols-2 gap-2">{mobileOverflow.map(n=><Link key={n.key} href={n.href} onClick={()=>setTarget(n.key)} className="flex items-center gap-3 rounded-xl border border-line p-3 text-[13px] font-semibold"><n.icon className="h-5 w-5 text-accent" />{t(`nav.${n.key}`)}</Link>)}</div></div></div>}
     </div>
   );
+}
+
+function MobileTab({ item, active, label, onGo }: { item: NavItem; active: NavKey; label: string; onGo: (key: NavKey) => void }) {
+  const is = active === item.key;
+  return <Link href={item.href} onClick={() => onGo(item.key)} className={`flex h-full flex-col items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold ${is ? "text-accent" : "text-mut2"}`}><span className={`grid h-7 w-12 place-items-center rounded-full transition ${is ? "bg-accent-soft" : ""}`}><item.icon className="h-5 w-5" /></span>{label}</Link>;
 }
 
 function SideLink({
