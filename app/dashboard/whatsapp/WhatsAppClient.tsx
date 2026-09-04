@@ -275,16 +275,16 @@ export function WhatsAppClient({
             <h3>{t("parsedTitle")}</h3>
           </div>
           <div className="space-y-3 px-5 py-4 text-[13px]">
-            <Row label={t("species")} value={parsed?.species ? ts(parsed.species) : t("none")} />
+            <Row label={t("species")} value={parsed?.species ? ts(parsed.species) : t("none")} testid="wa-species" />
             <Row label={t("symptoms")} value={parsedSymptoms.length ? parsedSymptoms.map((s) => tSym(s)).join(", ") : t("none")} />
-            <Row label={t("counts")} value={parsed ? `${parsed.sickCount} / ${parsed.deadCount}` : t("none")} />
+            <Row label={t("counts")} value={parsed ? `${parsed.sickCount} / ${parsed.deadCount}` : t("none")} testid="wa-counts" />
             <Row label={t("location")} value={parsed?.village ? `${parsed.village}${parsed.district ? ` · ${parsed.district}` : ""}` : t("none")} />
             {parsed && parsed.unclear && parsed.unclear.length > 0 && (
               <Row label={t("unclear")} value={parsed.unclear.slice(0, 4).join(", ")} />
             )}
             <div className="rounded-xl border border-line-2 bg-paper/60 px-3 py-2.5">
               <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("replyTitle")}</div>
-              <div className="mt-1 whitespace-pre-wrap text-[13px] text-ink-2">{reply ?? t("notParsed")}</div>
+              <div data-testid="wa-reply" className="mt-1 whitespace-pre-wrap text-[13px] text-ink-2">{reply ?? t("notParsed")}</div>
             </div>
           </div>
         </div>
@@ -376,11 +376,11 @@ export function WhatsAppClient({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, testid }: { label: string; value: string; testid?: string }) {
   return (
     <div className="flex items-start justify-between gap-3">
       <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{label}</span>
-      <span className="text-right text-[13px] text-ink-2">{value}</span>
+      <span data-testid={testid} className="text-right text-[13px] text-ink-2">{value}</span>
     </div>
   );
 }

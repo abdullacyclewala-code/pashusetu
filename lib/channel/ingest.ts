@@ -25,8 +25,9 @@ import {
   detectLanguage,
   detectSpecies,
   detectSymptoms,
+  detectCounts,
+  detectVillage,
   parseFreeText,
-  looksLikeReport,
   type VillageRow,
 } from "./parser";
 import { resolveFarmer, type FarmerProfile, normalizePhone } from "./farmer";
@@ -126,129 +127,243 @@ export async function ingestMessage(
     }
   }
 
-  // 5) Merge any free-text signals (species/symptoms/counts/location).
+  // 5) Extract signals from the current message (button title or free text).
   const interactive = msg.interactive ?? null;
-  const label = interactive ? interactiveValue(interactive) : msg.text ?? "";
+  const label = interactive ? interactiveValue(interactive) : (msg.text ?? "");
+  const msgSpecies = detectSpecies(label);
+  const msgSymptoms = detectSymptoms(label);
+  const hasCountWords = /sick|dead|died|बीमार|आजारी|मेले|मरे|मरा|मृत्यू/i.test(label);
+  const msgCounts = detectCounts(label);
+  const msgVillage = detectVillage(label, villages ?? []);
 
-  // If we're mid-conversation, fold the button/text into the draft.
-  if (step !== "idle") {
-    if (interactive || looksLikeReport(label)) {
-      const sp = detectSpecies(label);
-      if (sp) draft.species = sp;
-      const syms = detectSymptoms(label);
-      if (syms.length) draft.symptoms = Array.from(new Set([...(draft.symptoms ?? []), ...syms]));
-    }
+  // Fold the current message into the session draft.
+  if (msgSpecies) draft.species = msgSpecies;
+  if (msgSymptoms.length) {
+    draft.symptoms = Array.from(new Set([...(draft.symptoms ?? []), ...msgSymptoms]));
+  }
+  if (msgVillage) {
+    draft.village = msgVillage.name;
+    draft.taluka = msgVillage.taluka;
+    draft.district = msgVillage.district;
+  }
+  if (hasCountWords) {
+    draft.sickCount = msgCounts.sickCount;
+    draft.deadCount = msgCounts.deadCount;
   }
 
-  // 6) Decide what to do based on the flow.
-  const species = (draft.species ?? parsed.species) as string | null;
-  const symptoms = Array.from(new Set([...(draft.symptoms ?? []), ...(parsed.symptoms ?? [])]));
-  const sickCount = draft.sickCount ?? parsed.sickCount ?? 1;
-  const deadCount = draft.deadCount ?? parsed.deadCount ?? 0;
-  const village = draft.village ?? parsed.village ?? farmer.village ?? null;
-  const taluka = draft.taluka ?? parsed.taluka ?? farmer.taluka ?? null;
-  const district = draft.district ?? parsed.district ?? farmer.district ?? null;
-  const geoEwkt = (draft.geo as string | null) ?? (recv ? ewkt(recv.lng, recv.lat) : null);
+  // Free-text fast path may also supply species/symptoms/counts/location.
+  const freeSpecies = parsed.species;
+  const freeSymptoms = parsed.symptoms ?? [];
+  const species = draft.species ?? freeSpecies;
+  const symptoms = Array.from(new Set([...(draft.symptoms ?? []), ...freeSymptoms]));
+  const sickCount =
+    draft.sickCount ??
+    (parsedHasCount(msg.text ?? "") ? parsed.sickCount : null);
+  const deadCount =
+    draft.deadCount ??
+    (parsedHasCount(msg.text ?? "") ? parsed.deadCount : null);
 
-  // Interactive transition: a fresh button tap on an idle session starts guided mode.
-  if (interactive && step === "idle") {
-    if (species) {
-      draft.species = species;
-      await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, "species", draft);
-      return {
-        ok: true,
-        reportId: null,
-        nextStep: "symptoms",
-        reply: buildClarify(resolvedLocale, "symptoms"),
-        draft: null,
-        completed: false,
-      };
-    }
-    // "Report"/help path
-    await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, "species", draft);
-    return {
-      ok: true,
-      reportId: null,
-      nextStep: "species",
-      reply: buildClarify(resolvedLocale, "species"),
-      draft: null,
-      completed: false,
-    };
-  }
+  const isGuided = interactive !== null || step !== "idle";
 
-  // Guided progression (only when we still don't have everything).
-  if (step !== "idle" && !(species && symptoms.length)) {
-    const nextStep: SessionStep = !species ? "species" : symptoms.length ? "counts" : "symptoms";
-    await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, nextStep, draft);
-    return {
-      ok: true,
-      reportId: null,
-      nextStep,
-      reply: buildClarify(resolvedLocale, nextStep),
-      draft: null,
-      completed: false,
-    };
-  }
-
-  // 7) Fast path / completion — we have enough to create a report.
-  if (species && symptoms.length) {
-    const draftForReport: ReportDraft = {
+  // 6) Guided (multi-turn, button-driven) state machine.
+  if (isGuided) {
+    const next = nextMissing({
       species,
       symptoms,
       sickCount,
       deadCount,
-      village,
-      taluka,
-      district,
-      geoEwkt,
-      freeText: msg.text ?? null,
-      matchedVillage: vill
-        ? { name: vill.name, taluka: vill.taluka, district: vill.district }
-        : null,
-      unclear: parsed.unclear,
-    };
+      village: draft.village ?? parsed.village ?? farmer.village,
+      geo: draft.geo ?? null,
+    });
 
-    const result = await createAndReply(ctx, {
+    // Nothing missing → build the report now.
+    if (!next) {
+      return await finishAndReply(ctx, {
+        phone,
+        locale: resolvedLocale,
+        species,
+        symptoms,
+        sickCount: sickCount ?? 1,
+        deadCount: deadCount ?? 0,
+        village: draft.village ?? parsed.village ?? farmer.village,
+        taluka: draft.taluka ?? parsed.taluka ?? farmer.taluka,
+        district: draft.district ?? parsed.district ?? farmer.district,
+        geoEwkt: (draft.geo as string | null) ?? (recv ? ewkt(recv.lng, recv.lat) : null),
+        matchedVillageName: draft.village ?? parsed.matchedVillage?.name ?? null,
+        farmer,
+        vill,
+        freeText: msg.text ?? null,
+        rawText: msg.text ?? null,
+        channel,
+        c,
+        inboundPayload: {
+          message_type: msg.messageType,
+          text: msg.text ?? null,
+          interactive: msg.interactive ?? null,
+          location: msg.location ?? null,
+        },
+        unclear: parsed.unclear,
+      });
+    }
+
+    const current = step === "idle" ? null : step;
+    if (current === null) {
+      await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, next, draft);
+      return { ok: true, reportId: null, nextStep: next, reply: buildClarify(resolvedLocale, next), draft: null, completed: false };
+    }
+
+    const answered = fieldAnswered(current, { species, symptoms, sickCount, deadCount, village: draft.village ?? parsed.village, geo: (draft.geo as string | null) ?? null });
+    if (answered) {
+      if (next !== current) {
+        await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, next, draft);
+        return { ok: true, reportId: null, nextStep: next, reply: buildClarify(resolvedLocale, next), draft: null, completed: false };
+      }
+      // Same field still missing — ask again with any unclear tokens.
+      await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, current, draft);
+      return { ok: true, reportId: null, nextStep: current, reply: buildClarify(resolvedLocale, current, parsed.unclear), draft: null, completed: false };
+    }
+
+    await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, current, draft);
+    return { ok: true, reportId: null, nextStep: current, reply: buildClarify(resolvedLocale, current, parsed.unclear), draft: null, completed: false };
+  }
+
+  // 7) Fast path — a plain text message that already carries species + symptoms.
+  if (species && symptoms.length) {
+    return await finishAndReply(ctx, {
       phone,
       locale: resolvedLocale,
-      draft: draftForReport,
+      species,
+      symptoms,
+      sickCount: sickCount ?? 1,
+      deadCount: deadCount ?? 0,
+      village: draft.village ?? parsed.village ?? farmer.village,
+      taluka: draft.taluka ?? parsed.taluka ?? farmer.taluka,
+      district: draft.district ?? parsed.district ?? farmer.district,
+      geoEwkt: (draft.geo as string | null) ?? (recv ? ewkt(recv.lng, recv.lat) : null),
+      matchedVillageName: draft.village ?? parsed.matchedVillage?.name ?? null,
       farmer,
+      vill,
+      freeText: msg.text ?? null,
       rawText: msg.text ?? null,
       channel,
-      canWriteSource: c.reportsSource,
-      canLog: c.channelLog,
-      canSession: c.sessions,
+      c,
       inboundPayload: {
         message_type: msg.messageType,
         text: msg.text ?? null,
         interactive: msg.interactive ?? null,
         location: msg.location ?? null,
       },
+      unclear: parsed.unclear,
     });
-
-    await saveSession(
-      supabase,
-      c.sessions,
-      phone,
-      channel,
-      resolvedLocale,
-      null,
-      {}
-    );
-    return result;
   }
 
-  // 8) Not enough info yet — guide the farmer.
-  const nextStep: SessionStep = !species ? "species" : symptoms.length ? "counts" : "symptoms";
-  await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, nextStep, draft);
-  return {
-    ok: true,
-    reportId: null,
-    nextStep,
-    reply: buildClarify(resolvedLocale, nextStep, parsed.unclear),
-    draft: null,
-    completed: false,
+  // 8) Not enough for a report — start guiding (works for plain text too).
+  const next: SessionStep = !species ? "species" : symptoms.length ? "counts" : "symptoms";
+  await saveSession(supabase, c.sessions, phone, channel, resolvedLocale, next, draft);
+  return { ok: true, reportId: null, nextStep: next, reply: buildClarify(resolvedLocale, next, parsed.unclear), draft: null, completed: false };
+}
+
+/** Did the supplied message mention sick/dead counts (so we trust the parse)? */
+function parsedHasCount(text: string): boolean {
+  return /sick|dead|died|बीमार|आजारी|मेले|मरे|मरा|मृत्यू/i.test(text);
+}
+
+/** The first field the farmer still needs to answer, in guided order. */
+type MissingState = {
+  species: string | null;
+  symptoms: string[];
+  sickCount: number | null;
+  deadCount: number | null;
+  village: string | null;
+  geo: string | null;
+};
+function nextMissing(s: MissingState): SessionStep | null {
+  if (!s.species) return "species";
+  if (!s.symptoms.length) return "symptoms";
+  if (typeof s.sickCount !== "number") return "counts";
+  if (!s.village && !s.geo) return "location";
+  return null;
+}
+
+/** Was the field for `step` answered by the accumulated draft? */
+function fieldAnswered(step: SessionStep, s: MissingState): boolean {
+  switch (step) {
+    case "species": return !!s.species;
+    case "symptoms": return s.symptoms.length > 0;
+    case "counts": return typeof s.sickCount === "number";
+    case "location": return !!s.village || !!s.geo;
+    default: return true;
+  }
+}
+
+interface FinishInput {
+  phone: string;
+  locale: ChannelLocale;
+  species: string | null;
+  symptoms: string[];
+  sickCount: number;
+  deadCount: number;
+  village: string | null;
+  taluka: string | null;
+  district: string | null;
+  geoEwkt: string | null;
+  matchedVillageName: string | null;
+  farmer: FarmerProfile;
+  vill: { name: string; taluka: string; district: string } | null;
+  freeText: string | null;
+  rawText: string | null;
+  channel: Channel;
+  c: { reportsSource: boolean; channelLog: boolean; sessions: boolean };
+  inboundPayload: Record<string, unknown>;
+  unclear: string[];
+}
+
+/** Build the report row + send the localised reply (shared by guided + fast path). */
+async function finishAndReply(
+  ctx: IngestContext,
+  input: FinishInput
+): Promise<IngestResult> {
+  const { supabase } = ctx;
+
+  const draftForReport: ReportDraft = {
+    species: input.species,
+    symptoms: input.symptoms,
+    sickCount: input.sickCount,
+    deadCount: input.deadCount,
+    village: input.village,
+    taluka: input.taluka,
+    district: input.district,
+    geoEwkt: input.geoEwkt,
+    freeText: input.freeText,
+    matchedVillage: input.matchedVillageName
+      ? { name: input.matchedVillageName, taluka: input.taluka ?? "", district: input.district ?? "" }
+      : null,
+    unclear: input.unclear,
   };
+
+  const result = await createAndReply(ctx, {
+    phone: input.phone,
+    locale: input.locale,
+    draft: draftForReport,
+    farmer: input.farmer,
+    rawText: input.rawText,
+    channel: input.channel,
+    canWriteSource: input.c.reportsSource,
+    canLog: input.c.channelLog,
+    canSession: input.c.sessions,
+    inboundPayload: input.inboundPayload,
+  });
+
+  await saveSession(
+    supabase,
+    input.c.sessions,
+    input.phone,
+    input.channel,
+    input.locale,
+    null,
+    {}
+  );
+  return result;
 }
 
 interface CreateArgs {
