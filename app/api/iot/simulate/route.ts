@@ -1,4 +1,30 @@
-import {NextResponse} from "next/server";import {createClient as adminClient} from "@supabase/supabase-js";import {createClient} from "@/lib/supabase/server";import {ingestTelemetry} from "@/lib/iot/ingest";import {randomUUID} from "crypto";
-const KEY="ps-demo-device-v1", IDS=["PS-COLLAR-001","PS-COLLAR-002","PS-COLLAR-003"];
-function point(id:string,day:number){const n=Number(id.at(-1))-1;const healthy={bodyTempC:38.45+n*.06,ruminationMin:450-n*8,activity:100-n*2,milkYieldKg:10.7-n*.2};if(day===3)return {...healthy,envTempC:42,humidityPct:75,bodyTempC:39.0};if(day===4)return {...healthy,envTempC:31,bodyTempC:40.4+n*.15,ruminationMin:250-n*5,activity:46,milkYieldKg:7.1};if(day>=5)return {...healthy,envTempC:30,bodyTempC:41+n*.12,ruminationMin:175-n*4,activity:32,milkYieldKg:5.8};return {...healthy,envTempC:30,humidityPct:68};}
-export async function POST(req:Request){const auth=await createClient();const {data:c}=await auth.auth.getClaims();if(!c?.claims?.sub)return NextResponse.json({error:"Authentication required"},{status:401});const {data:p}=await auth.from("profiles").select("role,district").eq("id",c.claims.sub).single();if(!p||!["farmer","admin"].includes(p.role))return NextResponse.json({error:"Farmers only"},{status:403});const db=adminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});try{const {data:owned,error:ownedError}=await db.from("devices").select("external_id").in("external_id",IDS).eq("owner_id",c.claims.sub);if(ownedError)throw ownedError;if(p.role!=="admin"&&(owned?.length??0)!==IDS.length)return NextResponse.json({error:"These demo sensors are not linked to your herd"},{status:403});const body=await req.json().catch(()=>({}));if(body.action==="reset"){const {error}=await db.rpc("reset_iot_demo");if(error)throw error;return NextResponse.json({ok:true});}const timeline=[];for(let day=0;day<7;day++)for(const id of IDS){const payload={externalId:id,ingestId:randomUUID(),timestamp:new Date(Date.UTC(2026,8,10+day,6+Number(id.at(-1)))).toISOString(),...point(id,day)};timeline.push({day,device:id,...await ingestTelemetry(db,payload,KEY)});}return NextResponse.json({ok:true,points:timeline.length,timeline});}catch(e){console.error(e);return NextResponse.json({error:e instanceof Error?e.message:"Simulation failed"},{status:500});}}
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+/** Farmer-owned deterministic demo. Database RPCs verify auth.uid() and device
+ * ownership, so neither reset nor run relies on a privileged browser/server key. */
+export async function POST(req: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: claims } = await supabase.auth.getClaims();
+    if (!claims?.claims?.sub)
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const fn = body.action === "reset" ? "reset_my_iot_demo" : "run_my_iot_demo";
+    const { data, error } = await supabase.rpc(fn);
+    if (error) {
+      console.error("sensor demo RPC failed", { fn, code: error.code, message: error.message });
+      const message = error.message.includes("demo_sensors_not_linked")
+        ? "Demo sensors are not linked to this farmer account"
+        : error.message.includes("farmer_only")
+          ? "This demo is available to farmers only"
+          : "Could not update the sensor demo. Please try again.";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    return NextResponse.json(body.action === "reset" ? { ok: true } : data);
+  } catch (error) {
+    console.error("sensor demo route failed", error);
+    return NextResponse.json({ error: "Could not update the sensor demo. Please try again." }, { status: 500 });
+  }
+}
