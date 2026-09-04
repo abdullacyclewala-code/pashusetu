@@ -18,6 +18,7 @@ import {
   LogoutIcon,
   BellIcon,
   PinIcon,
+  WhatsAppIcon,
 } from "@/components/icons";
 
 /**
@@ -29,7 +30,7 @@ import {
  * route-level loading.tsx paints the skeleton while data loads.
  */
 
-type NavKey = "dash" | "report" | "cases" | "herd" | "alerts" | "triage";
+type NavKey = "dash" | "report" | "cases" | "herd" | "alerts" | "whatsapp" | "triage";
 
 interface NavItem {
   key: NavKey;
@@ -61,6 +62,12 @@ const NAV: NavItem[] = [
     icon: HerdIcon,
   },
   { key: "alerts", href: "/dashboard/alerts", roles: ALL, icon: BellIcon },
+  {
+    key: "whatsapp",
+    href: "/dashboard/whatsapp",
+    roles: ["vet", "officer", "lab", "admin"],
+    icon: WhatsAppIcon,
+  },
 ];
 
 const SCREENING: NavItem[] = [

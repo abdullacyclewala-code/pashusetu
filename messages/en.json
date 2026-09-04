@@ -13,7 +13,8 @@
     "triage": "Triage",
     "logout": "Sign out",
     "home": "Home",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "whatsapp": "WhatsApp"
   },
   "titles": {
     "dash": "Overview",
@@ -21,7 +22,8 @@
     "cases": "Cases & labs",
     "herd": "My herd",
     "triage": "Triage",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "whatsapp": "Farmer channel"
   },
   "crumbs": {
     "dash": "Dashboard",
@@ -538,5 +540,50 @@
       "received": "Received",
       "resulted": "Resulted"
     }
+  },
+  "whatsapp": {
+    "eyebrow": "Farmer channel",
+    "heading": "WhatsApp & voice reporting",
+    "lede": "A farmer with no app reports by WhatsApp message — it becomes a real report and lands on your dashboard, with a localised advisory reply sent straight back.",
+    "webhookTitle": "Production webhook",
+    "webhookHint": "Point the Meta WhatsApp Cloud API at this endpoint. Replies POST to the Graph API when a token is configured; otherwise they're stored and shown in the demo below.",
+    "webhookUrl": "WhatsApp webhook URL",
+    "verifyToken": "Verify token",
+    "phoneId": "Phone number ID",
+    "simTitle": "WhatsApp simulator",
+    "simHint": "Type a message exactly as a farmer would (or tap a sample). It flows through the same report → triage → advisory pipeline as the live webhook.",
+    "phoneLabel": "Farmer number",
+    "villageLabel": "Village (maps to district)",
+    "textPlaceholder": "e.g. \"cattle fever mouth blisters drooling 2 sick 1 dead Shirur\"",
+    "send": "Send",
+    "sampleTitle": "Sample messages",
+    "replyTitle": "Reply sent to farmer",
+    "parsedTitle": "What we understood",
+    "species": "Species",
+    "symptoms": "Signs",
+    "counts": "Sick / dead",
+    "location": "Location",
+    "matched": "Matched village",
+    "unclear": "Not understood",
+    "none": "(none)",
+    "notParsed": "Nothing parsed yet — send a message and the fields appear here.",
+    "inboxTitle": "Channel inbox",
+    "inboxHint": "Inbound and outbound channel messages (WhatsApp).",
+    "inbound": "In",
+    "outbound": "Out",
+    "phone": "Number",
+    "message": "Message",
+    "inboxEmpty": "No channel messages yet. Send one in the simulator, or point a real WhatsApp number here.",
+    "liveTitle": "Live reports in your district",
+    "liveHint": "Reports created through this channel appear here and on the Cases & labs dashboard.",
+    "disease": "Suspected",
+    "district": "District",
+    "reportId": "Report",
+    "webhookNote": "For the demo the reply is stored and shown here. Set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID in Vercel to deliver real WhatsApp messages.",
+    "poweredBy": "Voice notes and translation via Bhashini (optional).",
+    "guidanceTitle": "Guided (buttons)",
+    "guidanceHint": "Turns the number into a button-driven conversation — the best fit for low-literacy farmers. Uses the channel session store (migration 0007).",
+    "sentNow": "Just now",
+    "restart": "Restart"
   }
 }

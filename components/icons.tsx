@@ -250,3 +250,13 @@ export function ArrowRightIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** WhatsApp / chat-channel icon (chat bubble with a handset). */
+export function WhatsAppIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.4A8.5 8.5 0 1 1 21 11.5Z" />
+      <path d="M8.6 9.5c.4 2.8 2.7 5.1 5.5 5.6l1.2-1.2-2-1.2-1 .6a4.7 4.7 0 0 1-1.9-1.9l.6-1-1.2-2-1.2 1.1Z" />
+    </svg>
+  );
+}
