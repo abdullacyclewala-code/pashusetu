@@ -10,6 +10,7 @@ import { compressImage } from "@/lib/report/image";
 import { SPECIES, SYMPTOM_GROUPS } from "@/lib/report/constants";
 import { TriageCard } from "@/components/triage/TriageCard";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
+import { SkinScreenCard } from "@/components/image-model/SkinScreenCard";
 import { CheckIcon, ClockIcon, CameraIcon, PinIcon } from "@/components/icons";
 import type { TriageRow } from "@/lib/triage/types";
 import type { Profile } from "@/lib/types";
@@ -440,6 +441,7 @@ export function ReportWizard({
                   alt=""
                   className="max-h-64 w-full rounded-xl border border-line object-cover"
                 />
+                <SkinScreenCard blob={form.photo.blob} species={form.species} />
                 <button
                   type="button"
                   className="btn btn-line btn-sm self-start"

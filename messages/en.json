@@ -696,5 +696,28 @@
     "privateSignalCreated": "Created a private warning for {count} animals",
     "privateSignalBody": "You can see it immediately. It reaches the district officer only if matching signals become a serious area pattern.",
     "privacyTitle": "Your data stays yours"
+  },
+  "imageModel": {
+    "eyebrow": "On-device visual screen",
+    "analysing": "Checking the photo on this device…",
+    "unavailable": "Visual screening is unavailable for this photo or species. You can still submit the report.",
+    "healthyEnd": "Healthy-like",
+    "lsdEnd": "LSD-like",
+    "result": {
+      "normal_appearing": "Skin appears normal",
+      "lsd_like": "LSD-like skin changes detected",
+      "inconclusive": "Visual result is inconclusive"
+    },
+    "broad": {
+      "normal": "Normal screen",
+      "abnormal": "Abnormal screen",
+      "inconclusive": "Needs review"
+    },
+    "detail": {
+      "normal_appearing": "The model found low visual similarity to the LSD examples it was trained on.",
+      "lsd_like": "The photo has strong visual similarity to labelled lumpy-skin examples. Isolate the animal and request veterinary review.",
+      "inconclusive": "The photo falls between the model’s safe decision limits. A clearer close-up or veterinary examination is needed."
+    },
+    "disclaimer": "Visual screening only — not a diagnosis. The symptom-based triage remains separate and is not changed by this result."
   }
 }
