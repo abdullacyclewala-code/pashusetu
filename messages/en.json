@@ -706,7 +706,8 @@
     "result": {
       "normal_appearing": "Skin appears normal",
       "lsd_like": "LSD-like skin changes detected",
-      "inconclusive": "Visual result is inconclusive"
+      "inconclusive": "Visual result is inconclusive",
+      "fmd_like": "FMD-like visible changes detected"
     },
     "broad": {
       "normal": "Normal screen",
@@ -716,8 +717,14 @@
     "detail": {
       "normal_appearing": "The model found low visual similarity to the LSD examples it was trained on.",
       "lsd_like": "The photo has strong visual similarity to labelled lumpy-skin examples. Isolate the animal and request veterinary review.",
-      "inconclusive": "The photo falls between the model’s safe decision limits. A clearer close-up or veterinary examination is needed."
+      "inconclusive": "The photo falls between the model’s safe decision limits. A clearer close-up or veterinary examination is needed.",
+      "fmd_like": "The photo resembles the FMD-labelled images, often showing visible mouth or foot lesions. Isolate the animal and request urgent veterinary examination; a photo cannot confirm FMD."
     },
-    "disclaimer": "Visual screening only — not a diagnosis. The symptom-based triage remains separate and is not changed by this result."
+    "disclaimer": "Visual screening only — not a diagnosis. The symptom-based triage remains separate and is not changed by this result.",
+    "score": {
+      "normal_appearing": "Normal-like",
+      "lsd_like": "LSD-like",
+      "fmd_like": "FMD-like"
+    }
   }
 }

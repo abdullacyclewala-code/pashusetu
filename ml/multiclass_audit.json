@@ -1,0 +1,32 @@
+{
+  "images": 3244,
+  "corrupt": 0,
+  "exact_duplicate_groups": 1,
+  "exact_duplicate_extra_images": 1,
+  "near_duplicate_groups": 2,
+  "near_duplicate_extra_images": 2,
+  "cross_label_near_groups": 2,
+  "cross_label_images": 4,
+  "cross_label_examples": [
+    [
+      {
+        "file": "img1025.jpg",
+        "class": "foot-and-mouth"
+      },
+      {
+        "file": "img1025.jpg",
+        "class": "lumpy"
+      }
+    ],
+    [
+      {
+        "file": "Normal_Skin_588-resized.jpg",
+        "class": "healthy"
+      },
+      {
+        "file": "img1299(1).jpg",
+        "class": "lumpy"
+      }
+    ]
+  ]
+}

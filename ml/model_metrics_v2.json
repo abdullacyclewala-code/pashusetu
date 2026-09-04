@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+  "seed": 260905,
+  "dataset": {
+    "url": "https://www.kaggle.com/datasets/devang03mgr/cattle-diseases-datasets",
+    "license": "ODC Database Contents License 1.0",
+    "archive_sha256": "cee2fc7c03c645e72a5ea5107bc1d6fe5ada55834baa0e1fc4193df36a684e84",
+    "classes": {
+      "foot-and-mouth": 745,
+      "healthy": 1290,
+      "lumpy": 1205
+    }
+  },
+  "audit": {
+    "phash_distance": 4,
+    "cross_label_groups": 2,
+    "quarantined_images": 4
+  },
+  "split": {
+    "train": 2073,
+    "validation": 519,
+    "test": 648
+  },
+  "validation": {
+    "accuracy": 0.8921001926782274,
+    "balanced_accuracy": 0.9121993615613874,
+    "macro_roc_auc_ovr": 0.9813068927017348
+  },
+  "test": {
+    "accuracy": 0.8549382716049383,
+    "balanced_accuracy": 0.8618239559472145,
+    "macro_roc_auc_ovr": 0.9618491028783761,
+    "confusion_matrix": [
+      [
+        134,
+        10,
+        5
+      ],
+      [
+        23,
+        207,
+        28
+      ],
+      [
+        8,
+        20,
+        213
+      ]
+    ],
+    "classes": {
+      "foot-and-mouth": {
+        "precision": 0.8121212121212121,
+        "recall": 0.8993288590604027,
+        "f1-score": 0.8535031847133758,
+        "support": 149.0
+      },
+      "healthy": {
+        "precision": 0.8734177215189873,
+        "recall": 0.8023255813953488,
+        "f1-score": 0.8363636363636363,
+        "support": 258.0
+      },
+      "lumpy": {
+        "precision": 0.8658536585365854,
+        "recall": 0.8838174273858921,
+        "f1-score": 0.8747433264887063,
+        "support": 241.0
+      },
+      "accuracy": 0.8549382716049383,
+      "macro avg": {
+        "precision": 0.8504641973922616,
+        "recall": 0.8618239559472145,
+        "f1-score": 0.8548700491885728,
+        "support": 648.0
+      },
+      "weighted avg": {
+        "precision": 0.8565101303476488,
+        "recall": 0.8549382716049383,
+        "f1-score": 0.8545786024504466,
+        "support": 648.0
+      }
+    }
+  }
+}
