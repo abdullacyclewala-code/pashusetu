@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile } from "@/lib/data/session";
 import { AlertsClient } from "./AlertsClient";
 import type { AlertRow, ClusterRow } from "@/lib/alerts/types";
+import type { DairySignal, RiskForecast } from "@/lib/forecast/types";
+import { EarlyWarningPanel } from "./EarlyWarningPanel";
 
 const ALERTS_SELECT =
   "id, severity, audience, district, channel, read, created_at, message_json";
@@ -18,7 +20,7 @@ export default async function AlertsPage() {
 
   const supabase = await createClient();
 
-  const [alertsRes, clustersRes] = await Promise.all([
+  const [alertsRes, clustersRes, forecastRes, signalRes, villageRes] = await Promise.all([
     supabase
       .from("alerts")
       .select(ALERTS_SELECT)
@@ -31,6 +33,9 @@ export default async function AlertsPage() {
       .order("created_at", { ascending: false })
       .limit(25)
       .returns<ClusterRow[]>(),
+    supabase.from("district_risk_forecasts").select("*").order("forecast_date", { ascending: false }).order("risk_score", { ascending: false }).limit(20).returns<RiskForecast[]>(),
+    supabase.from("dairy_anomalies").select("id,village,block,district,date,observed_yield,seasonal_baseline,weather_adjustment,residual_z,consecutive_days,status,reason").in("status", ["watch","field_verify"]).order("date", { ascending:false }).limit(20).returns<DairySignal[]>(),
+    supabase.from("villages").select("name,taluka,district,lat,lng"),
   ]);
 
   const allAlerts = alertsRes.data ?? [];
@@ -43,6 +48,12 @@ export default async function AlertsPage() {
       <div className="eyebrow">{t("eyebrow")}</div>
       <div className="h1">{t("heading")}</div>
       <p className="lede">{t("lede")}</p>
+
+      <EarlyWarningPanel
+        forecasts={forecastRes.data ?? []}
+        signals={signalRes.data ?? []}
+        points={(forecastRes.data ?? []).flatMap((f) => { const v=(villageRes.data ?? []).find((x) => x.district===f.district && (x.taluka===f.block || x.name===f.block)); return v?.lat != null && v?.lng != null ? [{lat:v.lat as number,lng:v.lng as number,title:`${f.block}, ${f.district}`,level:f.risk_level,score:Number(f.risk_score)}] : []; })}
+      />
 
       <AlertsClient
         initialAlerts={allAlerts}

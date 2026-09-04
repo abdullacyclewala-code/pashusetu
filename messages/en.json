@@ -611,5 +611,22 @@
     "realWhatsappSub": "Message this number directly from your phone.",
     "realWhatsappNote": "For now this is manual — the number goes to PashuSetu. The automatic reply you see above needs the number on Meta's WhatsApp Business API.",
     "simNote": "This is an in-app simulation of the WhatsApp flow — it does not send a real WhatsApp message. It runs the same report → triage → reply pipeline a live WhatsApp would."
+  },
+  "forecast": {
+    "eyebrow": "Predictive surveillance",
+    "title": "Tomorrow’s risk outlook",
+    "hint": "Report trends, weather and milk-yield signals combined by block.",
+    "signals": "Syndromic dairy signals",
+    "noSignals": "No unexplained two-day milk dip is active.",
+    "verify": "Field verify",
+    "dip": "{days} consecutive days · {z}σ below expected",
+    "observed": "Observed",
+    "expected": "Weather-adjusted expected",
+    "method": "Why this is trustworthy: a weekday seasonal median removes normal cycles; heat, humidity and rainfall effects are subtracted before a signal must remain below −2.5σ for two days. This is an early-warning signal, not a diagnosis.",
+    "level": {
+      "low": "Low risk",
+      "medium": "Medium risk",
+      "high": "High risk"
+    }
   }
 }

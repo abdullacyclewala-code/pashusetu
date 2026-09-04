@@ -1,0 +1,3 @@
+export type RiskLevel = "low" | "medium" | "high";
+export interface DairySignal { id:string; village:string; block:string; district:string; date:string; observed_yield:number; seasonal_baseline:number; weather_adjustment:number; residual_z:number; consecutive_days:number; status:"normal"|"watch"|"field_verify"; reason:Record<string,unknown>; }
+export interface RiskForecast { id:string; district:string; block:string; forecast_date:string; observed_reports:number; baseline:number; ewma:number; report_z:number; weather_risk:number; dairy_risk:number; risk_score:number; risk_level:RiskLevel; reasons:Array<{key:string;value:number}>; }

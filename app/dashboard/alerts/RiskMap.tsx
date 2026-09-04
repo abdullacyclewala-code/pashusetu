@@ -1,0 +1,5 @@
+"use client";
+import {useEffect,useRef} from "react";import L from "leaflet";import "leaflet/dist/leaflet.css";
+const C={low:"#7A8C51",medium:"#B98523",high:"#A8431F"};
+const esc=(s:string)=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]!));
+export function RiskMap({points}:{points:Array<{lat:number;lng:number;title:string;level:"low"|"medium"|"high";score:number}>}){const el=useRef<HTMLDivElement>(null);useEffect(()=>{if(!el.current)return;const map=L.map(el.current,{scrollWheelZoom:false}).setView([18.75,74.2],8);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);for(const p of points)L.circle([p.lat,p.lng],{radius:7000+Math.max(0,p.score)*120,color:C[p.level],fillColor:C[p.level],fillOpacity:.22,weight:2}).bindPopup(`<b>${esc(p.title)}</b><br>${Math.round(p.score)}/100`).addTo(map);if(points.length)map.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])),{padding:[30,30],maxZoom:9});return()=>{map.remove();}},[points]);return <div ref={el} className="case-map h-[260px] w-full md:h-[320px]" aria-label="forecast risk zone map"/>}
