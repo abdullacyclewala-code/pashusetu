@@ -215,3 +215,38 @@ export function StopIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function FlaskIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M9 3h6M10 3v6.2L4.7 17.6A2 2 0 0 0 6.4 20h11.2a2 2 0 0 0 1.7-2.4L14 9.2V3" />
+      <path d="M7.2 15h9.6" />
+    </svg>
+  );
+}
+
+export function SyringeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M18.2 3.8l2 2M16.2 5.8l2 2M14 8l4.5 4.5-2 2L12 9.5z" />
+      <path d="M4 20l5.5-5.5M12 9.5L4 17.5l-1 3 3-1 8-8" />
+    </svg>
+  );
+}
+
+export function ShieldCheckIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={1.7} className={className}>
+      <path d="M12 3l8 3v5.5c0 4.5-3.4 7.9-8 9.5-4.6-1.6-8-5-8-9.5V6z" />
+      <path d="M9 12l2 2 4-4.5" />
+    </svg>
+  );
+}
+
+export function ArrowRightIcon({ className }: IconProps) {
+  return (
+    <svg {...base} strokeWidth={2} className={className}>
+      <path d="M4 12h15M13 6l6 6-6 6" />
+    </svg>
+  );
+}

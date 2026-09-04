@@ -95,6 +95,7 @@ export default async function CasesPage() {
           medianTriageMin,
         }}
         canDecide={["vet", "officer", "admin"].includes(profile.role)}
+        district={profile.district}
       />
     </section>
   );

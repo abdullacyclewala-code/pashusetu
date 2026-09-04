@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
+import { QRCodeSVG } from "qrcode.react";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
 import { AdvisoryPanel } from "@/components/triage/AdvisoryPanel";
 import { candidateName } from "@/lib/triage/name";
@@ -21,11 +22,18 @@ import {
   InfoIcon,
   ClockIcon,
   AlertTriangleIcon,
+  FlaskIcon,
+  ArrowRightIcon,
+  ClipboardIcon,
 } from "@/components/icons";
 import {
   OFFICER_ROW_SELECT,
+  diseaseName,
   type OfficerKpis,
   type OfficerReportRow,
+  type OfficerCase,
+  type SampleRow,
+  type VetRow,
 } from "@/lib/officer/types";
 import type { Candidate } from "@/lib/triage/types";
 import type { MapPoint } from "./CaseMap";
@@ -47,6 +55,24 @@ const CHIP: Record<string, { bg: string; fg: string }> = {
   critical: { bg: "#F9E3DB", fg: "#A8431F" },
 };
 
+const CASE_CHIP: Record<string, { bg: string; fg: string }> = {
+  suspected: { bg: "#FBF3DC", fg: "#8A6D1F" },
+  confirmed: { bg: "#EDF0DE", fg: "#5E6E3E" },
+  contained: { bg: "#E3EBF1", fg: "#3E6E8A" },
+  closed: { bg: "#ECECEC", fg: "#5A5A5A" },
+  rejected: { bg: "#F3E3E3", fg: "#9A4D4D" },
+};
+
+const SAMPLE_CHIP: Record<string, { bg: string; fg: string }> = {
+  collected: { bg: "#EDF0DE", fg: "#5E6E3E" },
+  in_transit: { bg: "#FBF3DC", fg: "#8A6D1F" },
+  received: { bg: "#E3EBF1", fg: "#3E6E8A" },
+  resulted: { bg: "#E9EDE0", fg: "#5A7A3E" },
+};
+
+const SPECIMENS = ["blood", "swab", "serum", "milk", "urine"];
+const RESULTS = ["positive", "negative", "inconclusive"];
+
 type Filter = "all" | "review" | "decided";
 
 interface Props {
@@ -54,9 +80,16 @@ interface Props {
   initialClusters?: ClusterRow[];
   kpis: OfficerKpis;
   canDecide: boolean;
+  district: string | null;
 }
 
-export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }: Props) {
+export function OfficerClient({
+  initialRows,
+  initialClusters,
+  kpis,
+  canDecide,
+  district,
+}: Props) {
   const t = useTranslations();
   const format = useFormatter();
   const locale = useLocale();
@@ -71,11 +104,38 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
   const [selected, setSelected] = useState<OfficerReportRow | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // P6 escalation + lab state
+  const [vets, setVets] = useState<VetRow[]>([]);
+  const [vetId, setVetId] = useState<string>("");
+  const [note, setNote] = useState("");
+  const [newSpecimen, setNewSpecimen] = useState("blood");
+  const [creatingSample, setCreatingSample] = useState(false);
+  const [resultForm, setResultForm] = useState<Record<string, boolean>>({});
+  const [resultVal, setResultVal] = useState<Record<string, string>>({});
+  const [resultSum, setResultSum] = useState<Record<string, string>>({});
+
   useEffect(() => setMounted(true), []);
 
-  /* ── realtime ───── */
+  /* ── load vets for the assign dropdown (district-scoped) ── */
   useEffect(() => {
-    const refetch = (id: string) => {
+    let active = true;
+    const q = supabase
+      .from("vets")
+      .select("id, name, phone, district, taluka")
+      .order("name", { ascending: true });
+    q.then(({ data }) => {
+      if (!active) return;
+      const all = (data as VetRow[] | null) ?? [];
+      setVets(district ? all.filter((v) => v.district === district) : all);
+    });
+    return () => {
+      active = false;
+    };
+  }, [supabase, district]);
+
+  /* ── refresh a single report row (matches the SSR select) ── */
+  const refreshReport = useCallback(
+    (id: string) =>
       supabase
         .from("reports")
         .select(OFFICER_ROW_SELECT)
@@ -84,11 +144,14 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
         .then(({ data }) => {
           if (data) {
             setRows((rs) => rs.map((r) => (r.id === id ? data : r)));
-            setSelected((cur) => (cur && cur.id === id ? (data as OfficerReportRow) : cur));
+            setSelected((cur) => (cur && cur.id === id ? data : cur));
           }
-        });
-    };
+        }),
+    [supabase]
+  );
 
+  /* ── realtime ───── */
+  useEffect(() => {
     const channel = supabase
       .channel("officer-queue")
       .on(
@@ -129,8 +192,8 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                 ]
           );
           setNewIds((s) => new Set(s).add(id));
-          setTimeout(() => refetch(id), 4000);
-          setTimeout(() => refetch(id), 10000);
+          setTimeout(() => refreshReport(id), 4000);
+          setTimeout(() => refreshReport(id), 10000);
         }
       )
       .subscribe();
@@ -138,7 +201,7 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, refreshReport]);
 
   /* ── realtime: active clusters stream into the strip ── */
   useEffect(() => {
@@ -185,14 +248,67 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
     };
   }, [selected]);
 
+  const flashError = (msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 4000);
+  };
+
   const decide = async (id: string, decision: "confirmed" | "rejected") => {
     const prev = rows;
     setBusy(id);
     setRows((rs) =>
-      rs.map((r) => (r.id === id ? { ...r, cases: [{ status: decision }] } : r))
+      rs.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              cases: [
+                {
+                  id: "pending",
+                  report_id: id,
+                  status: decision,
+                  disease_code: null,
+                  severity: null,
+                  district: null,
+                  assigned_vet_id: null,
+                  escalated_at: null,
+                  contained_at: null,
+                  closed_at: null,
+                  notes: null,
+                  updated_at: "",
+                  vet: null,
+                  samples: [],
+                  case_events: [],
+                } as OfficerCase,
+              ],
+            }
+          : r
+      )
     );
     setSelected((cur) =>
-      cur && cur.id === id ? { ...cur, cases: [{ status: decision }] } : cur
+      cur && cur.id === id
+        ? {
+            ...cur,
+            cases: [
+              {
+                id: "pending",
+                report_id: id,
+                status: decision,
+                disease_code: null,
+                severity: null,
+                district: null,
+                assigned_vet_id: null,
+                escalated_at: null,
+                contained_at: null,
+                closed_at: null,
+                notes: null,
+                updated_at: "",
+                vet: null,
+                samples: [],
+                case_events: [],
+              } as OfficerCase,
+            ],
+          }
+        : cur
     );
     const { error: e } = await supabase.rpc("officer_decide", {
       p_report_id: id,
@@ -200,8 +316,80 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
     });
     if (e) {
       setRows(prev);
-      setError(t("cases.decideError"));
-      setTimeout(() => setError(null), 4000);
+      flashError(t("cases.decideError"));
+    } else {
+      await refreshReport(id);
+    }
+    setBusy(null);
+  };
+
+  /* ── P6 RPC handlers ── */
+  const assignVet = async (caseId: string) => {
+    if (!vetId) return;
+    setBusy(caseId);
+    const { error: e } = await supabase
+      .rpc("case_assign_vet", { p_case: caseId, p_vet: vetId })
+      .single();
+    if (e) flashError(e.message || t("cases.actionError"));
+    else await refreshReport(selected?.id ?? "");
+    setBusy(null);
+  };
+
+  const changeStatus = async (caseId: string, status: string) => {
+    setBusy(caseId);
+    const { error: e } = await supabase
+      .rpc("case_set_status", { p_case: caseId, p_status: status, p_note: note || null })
+      .single();
+    if (e) flashError(e.message || t("cases.actionError"));
+    else {
+      setNote("");
+      if (selected) await refreshReport(selected.id);
+    }
+    setBusy(null);
+  };
+
+  const createSample = async (caseId: string) => {
+    if (!creatingSample) {
+      setCreatingSample(true);
+      return;
+    }
+    setBusy(caseId);
+    const { error: e } = await supabase
+      .rpc("case_create_sample", { p_case: caseId, p_specimen: newSpecimen })
+      .single();
+    if (e) flashError(e.message || t("cases.actionError"));
+    else {
+      setCreatingSample(false);
+      if (selected) await refreshReport(selected.id);
+    }
+    setBusy(null);
+  };
+
+  const advanceSample = async (sampleId: string, status: string) => {
+    setBusy(sampleId);
+    const { error: e } = await supabase
+      .rpc("sample_set_status", { p_sample: sampleId, p_status: status, p_note: null })
+      .single();
+    if (e) flashError(e.message || t("cases.actionError"));
+    else if (selected) await refreshReport(selected.id);
+    setBusy(null);
+  };
+
+  const saveResult = async (sampleId: string) => {
+    if (!resultVal[sampleId]?.trim()) return;
+    setBusy(sampleId);
+    const { error: e } = await supabase
+      .rpc("sample_set_result", {
+        p_sample: sampleId,
+        p_result: resultVal[sampleId].trim(),
+        p_result_summary: resultSum[sampleId]?.trim() || null,
+      })
+      .single();
+    if (e) {
+      flashError(e.message || t("cases.actionError"));
+    } else {
+      setResultForm((m) => ({ ...m, [sampleId]: false }));
+      if (selected) await refreshReport(selected.id);
     }
     setBusy(null);
   };
@@ -252,10 +440,15 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
       "urgency",
       "confidence",
       "case_status",
+      "assigned_vet",
+      "barcode",
+      "sample_result",
     ];
     const lines = filtered.map((r) => {
       const tr = r.triage_results[0];
       const c = tr?.disease_candidates[0];
+      const cs = r.cases[0];
+      const sm = cs?.samples?.[0];
       return [
         r.id,
         r.created_at,
@@ -272,7 +465,10 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
         c?.name_en ?? "",
         tr?.urgency ?? "",
         tr?.confidence ?? "",
-        r.cases[0]?.status ?? "undecided",
+        cs?.status ?? "undecided",
+        cs?.vet?.name ?? "",
+        sm?.barcode ?? "",
+        sm?.result ?? "",
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(",");
@@ -304,6 +500,512 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
 
   const symptomLabel = (s: string) =>
     t.has(`symptoms.${s}`) ? t(`symptoms.${s}`) : s.replace(/_/g, " ");
+
+  const caseChip = (c: OfficerCase) => {
+    const ch = CASE_CHIP[c.status] ?? CASE_CHIP.suspected;
+    return (
+      <span
+        className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+        style={{ background: ch.bg, color: ch.fg }}
+      >
+        {t(`cases.status.${c.status}`)}
+      </span>
+    );
+  };
+
+  const sampleChip = (s: SampleRow) => {
+    const ch = SAMPLE_CHIP[s.status] ?? SAMPLE_CHIP.collected;
+    return (
+      <span
+        className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+        style={{ background: ch.bg, color: ch.fg }}
+      >
+        {t(`cases.sampleStatus.${s.status}`)}
+      </span>
+    );
+  };
+
+  const fmtDate = (iso: string | null | undefined) =>
+    iso ? format.dateTime(new Date(iso), { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+  /* ── case escalation + lab block ── */
+  const renderCaseBlock = (theCase: OfficerCase) => {
+    const transcript = theCase.case_events ?? [];
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="rounded-2xl border border-line bg-card">
+          <div className="flex flex-wrap items-center gap-2.5 border-b border-line-2 px-4 py-3">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-soft text-accent">
+              <RowsIcon className="h-4 w-4" />
+            </span>
+            <span className="text-[13px] font-bold uppercase tracking-[0.1em]">
+              {t("cases.caseLabel")}
+            </span>
+            {caseChip(theCase)}
+            <span className="ml-auto text-[11.5px] text-mut">
+              {t("cases.caseId", { id: theCase.id.slice(0, 8) })}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 px-4 py-3.5">
+            <div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("cases.diseaseLabel")}
+              </div>
+              <div className="mt-1 text-[14px] font-semibold">
+                {diseaseName(theCase.disease_code, locale)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("cases.assignedVet")}
+              </div>
+              <div className="mt-1 text-[14px] font-semibold">
+                {theCase.vet?.name ??
+                  (theCase.assigned_vet_id
+                    ? theCase.assigned_vet_id.slice(0, 8)
+                    : t("cases.noVet"))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-line-2 px-4 py-2.5 text-[11.5px] text-mut">
+            {theCase.escalated_at && (
+              <span className="flex items-center gap-1">
+                <ArrowRightIcon className="h-3 w-3" />
+                {t("cases.escalatedAt")} {fmtDate(theCase.escalated_at)}
+              </span>
+            )}
+            {theCase.contained_at && (
+              <span className="flex items-center gap-1">
+                <ArrowRightIcon className="h-3 w-3" />
+                {t("cases.containedAt")} {fmtDate(theCase.contained_at)}
+              </span>
+            )}
+            {theCase.closed_at && (
+              <span className="flex items-center gap-1">
+                <ArrowRightIcon className="h-3 w-3" />
+                {t("cases.closedAt")} {fmtDate(theCase.closed_at)}
+              </span>
+            )}
+            {!theCase.escalated_at && !theCase.contained_at && !theCase.closed_at && (
+              <span>{t("cases.noTimestamps")}</span>
+            )}
+          </div>
+
+          {theCase.notes && (
+            <div className="border-t border-line-2 px-4 py-3 text-[13px] leading-relaxed text-ink-2">
+              <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                {t("cases.officerNote")}
+              </div>
+              {theCase.notes}
+            </div>
+          )}
+        </div>
+
+        {/* escalation controls */}
+        {canDecide && !["closed", "rejected"].includes(theCase.status) && (
+          <div className="rounded-2xl border border-line-2 bg-paper/60 p-4">
+            <div className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em]">
+              {t("cases.escalationTitle")}
+            </div>
+
+            {!theCase.assigned_vet_id && (
+              <div className="mb-3">
+                <label className="field-label" htmlFor="vet">
+                  {t("cases.assignVet")}
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <select
+                    id="vet"
+                    className="field flex-1"
+                    value={vetId}
+                    onChange={(e) => setVetId(e.target.value)}
+                  >
+                    <option value="">{t("cases.vetSelectPlaceholder")}</option>
+                    {vets.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                        {v.taluka ? ` · ${v.taluka}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    disabled={busy === theCase.id || !vetId}
+                    onClick={() => assignVet(theCase.id)}
+                    className="btn btn-dark sm:w-auto disabled:opacity-50"
+                  >
+                    {busy === theCase.id ? t("common.working") : t("cases.assignVet")}
+                  </button>
+                </div>
+                {vets.length === 0 && (
+                  <p className="mt-1.5 text-[11.5px] text-mut">{t("cases.noVets")}</p>
+                )}
+              </div>
+            )}
+
+            <label className="field-label" htmlFor="note">
+              {t("cases.noteLabel")}
+            </label>
+            <textarea
+              id="note"
+              className="field mb-3 min-h-[64px]"
+              rows={2}
+              placeholder={t("cases.notePlaceholder")}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+
+            <div className="flex flex-wrap gap-2">
+              {theCase.status === "confirmed" && (
+                <button
+                  disabled={busy === theCase.id}
+                  onClick={() => changeStatus(theCase.id, "contained")}
+                  className="btn btn-dark flex-1 px-4 disabled:opacity-50"
+                >
+                  {busy === theCase.id
+                    ? t("common.working")
+                    : t("cases.markContained")}
+                </button>
+              )}
+              {["confirmed", "contained"].includes(theCase.status) && (
+                <button
+                  disabled={busy === theCase.id}
+                  onClick={() => changeStatus(theCase.id, "closed")}
+                  className="btn btn-line flex-1 px-4 disabled:opacity-50"
+                >
+                  {busy === theCase.id
+                    ? t("common.working")
+                    : t("cases.markClosed")}
+                </button>
+              )}
+              {theCase.status === "confirmed" && (
+                <button
+                  disabled={busy === theCase.id}
+                  onClick={() => changeStatus(theCase.id, "rejected")}
+                  className="btn btn-line flex-1 px-4 text-accent disabled:opacity-50"
+                >
+                  {busy === theCase.id ? t("common.working") : t("cases.rejectCase")}
+                </button>
+              )}
+            </div>
+            <p className="mt-3 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-mut">
+              <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {t("cases.closeLoopHint")}
+            </p>
+          </div>
+        )}
+
+        {["contained", "closed"].includes(theCase.status) && (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-sage-soft bg-sage-soft/40 px-4 py-3 text-[12.5px] font-semibold text-sage">
+            <CheckIcon className="h-4 w-4" />
+            {t("cases.closeLoopDone")}
+          </div>
+        )}
+
+        {/* samples */}
+        <div className="overflow-hidden rounded-2xl border border-line bg-card">
+          <div className="flex flex-wrap items-center gap-2.5 border-b border-line-2 px-4 py-3">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-sage-soft text-sage">
+              <FlaskIcon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold uppercase tracking-[0.1em]">
+                {t("cases.samplesTitle")}
+              </div>
+              <div className="text-[11.5px] text-mut">
+                {t("cases.samplesHint")}
+              </div>
+            </div>
+            {!["closed", "rejected"].includes(theCase.status) && (
+              <button
+                disabled={busy === theCase.id}
+                onClick={() => createSample(theCase.id)}
+                className="ml-auto rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-paper disabled:opacity-50"
+              >
+                {busy === theCase.id
+                  ? t("common.working")
+                  : creatingSample
+                    ? t("cases.confirmCreateSample")
+                    : t("cases.createSample")}
+              </button>
+            )}
+          </div>
+
+          {creatingSample && (
+            <div className="flex flex-wrap items-center gap-2 border-b border-line-2 px-4 py-3">
+              <select
+                className="field flex-1"
+                value={newSpecimen}
+                onChange={(e) => setNewSpecimen(e.target.value)}
+              >
+                {SPECIMENS.map((s) => (
+                  <option key={s} value={s}>
+                    {t(`cases.specimen.${s}`)}
+                  </option>
+                ))}
+              </select>
+              <button
+                disabled={busy === theCase.id}
+                onClick={() => createSample(theCase.id)}
+                className="btn btn-dark disabled:opacity-50"
+              >
+                {busy === theCase.id ? t("common.working") : t("common.save")}
+              </button>
+            </div>
+          )}
+
+          {(theCase.samples ?? []).length === 0 ? (
+            <div className="px-4 py-6 text-center text-[13px] text-mut">
+              {t("cases.samplesEmpty")}
+            </div>
+          ) : (
+            <ul className="divide-y divide-line-2">
+              {(theCase.samples ?? []).map((s) => {
+                const custody = s.custody_json ?? [];
+                return (
+                  <li key={s.id} className="px-4 py-3.5">
+                    <div className="flex flex-wrap items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[13px] font-bold text-ink">
+                            {s.barcode ?? "—"}
+                          </span>
+                          {sampleChip(s)}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11.5px] text-mut">
+                          <span>
+                            {t("cases.specimenType")}:{" "}
+                            {t(`cases.specimen.${s.specimen_type ?? "blood"}`)}
+                          </span>
+                          <span>
+                            {t("cases.diseaseLabel")}:{" "}
+                            {diseaseName(s.disease_code, locale)}
+                          </span>
+                        </div>
+                      </div>
+                      {s.barcode && (
+                        <div className="rounded-xl border border-line bg-paper p-2.5">
+                          <QRCodeSVG
+                            value={s.barcode}
+                            size={96}
+                            bgColor="#ffffff"
+                            fgColor="#1a1a1a"
+                            level="M"
+                          />
+                          <div className="mt-1 text-center text-[9.5px] font-semibold uppercase tracking-[0.1em] text-mut2">
+                            {t("cases.scanHint")}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11.5px]">
+                      <div className="rounded-xl bg-paper/70 px-3 py-2">
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-mut2">
+                          {t("cases.collectedAt")}
+                        </div>
+                        <div className="mt-0.5">{fmtDate(s.collected_at)}</div>
+                      </div>
+                      <div className="rounded-xl bg-paper/70 px-3 py-2">
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-mut2">
+                          {t("cases.receivedAt")}
+                        </div>
+                        <div className="mt-0.5">{fmtDate(s.received_at)}</div>
+                      </div>
+                      <div className="rounded-xl bg-paper/70 px-3 py-2">
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-mut2">
+                          {t("cases.resultedAt")}
+                        </div>
+                        <div className="mt-0.5">{fmtDate(s.resulted_at)}</div>
+                      </div>
+                    </div>
+
+                    {s.result && (
+                      <div className="mt-3 rounded-xl border border-line-2 bg-paper/60 px-3.5 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                            {t("cases.labResult")}
+                          </span>
+                          <span className="rounded-full bg-sage-soft px-2.5 py-0.5 text-[11px] font-bold text-sage">
+                            {t(`cases.result.${s.result}`)}
+                          </span>
+                        </div>
+                        {s.result_summary && (
+                          <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">
+                            {s.result_summary}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* chain of custody */}
+                    {custody.length > 0 && (
+                      <div className="mt-3">
+                        <div className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
+                          <ClipboardIcon className="h-3.5 w-3.5" />
+                          {t("cases.custodyChain")}
+                        </div>
+                        <ol className="flex flex-col gap-1.5">
+                          {custody.map((e, i) => (
+                            <li
+                              key={i}
+                              className="flex items-start gap-2.5 text-[12px] leading-snug"
+                            >
+                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-sage" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-ink-2">
+                                  {e.action}
+                                </div>
+                                <div className="text-[11px] text-mut">
+                                  {e.by} · {e.role} · {fmtDate(e.at)}
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* pipeline controls */}
+                    {["collected", "in_transit", "received"].includes(s.status) && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {s.status === "collected" && (
+                          <button
+                            disabled={busy === s.id}
+                            onClick={() => advanceSample(s.id, "in_transit")}
+                            className="btn btn-line btn-sm disabled:opacity-50"
+                          >
+                            {t("cases.dispatchToLab")}
+                          </button>
+                        )}
+                        {s.status === "in_transit" && (
+                          <button
+                            disabled={busy === s.id}
+                            onClick={() => advanceSample(s.id, "received")}
+                            className="btn btn-line btn-sm disabled:opacity-50"
+                          >
+                            {t("cases.markReceived")}
+                          </button>
+                        )}
+                        {s.status === "received" && (
+                          <button
+                            disabled={busy === s.id}
+                            onClick={() =>
+                              setResultForm((m) => ({
+                                ...m,
+                                [s.id]: !m[s.id],
+                              }))
+                            }
+                            className="btn btn-dark btn-sm disabled:opacity-50"
+                          >
+                            {t("cases.enterResult")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {resultForm[s.id] && (
+                      <div className="mt-3 flex flex-col gap-2 rounded-xl border border-line-2 bg-paper/60 p-3">
+                        <div className="flex flex-wrap gap-2">
+                          {RESULTS.map((r) => (
+                            <button
+                              key={r}
+                              onClick={() =>
+                                setResultVal((v) => ({ ...v, [s.id]: r }))
+                              }
+                              className={`rounded-full px-3 py-1.5 text-[12px] font-semibold ${
+                                resultVal[s.id] === r
+                                  ? "bg-ink text-paper"
+                                  : "border border-line bg-card text-mut"
+                              }`}
+                            >
+                              {t(`cases.result.${r}`)}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          className="field"
+                          placeholder={t("cases.resultSummaryPlaceholder")}
+                          value={resultSum[s.id] ?? ""}
+                          onChange={(e) =>
+                            setResultSum((v) => ({
+                              ...v,
+                              [s.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            disabled={busy === s.id || !resultVal[s.id]?.trim()}
+                            onClick={() => saveResult(s.id)}
+                            className="btn btn-dark flex-1 disabled:opacity-50"
+                          >
+                            {busy === s.id
+                              ? t("common.working")
+                              : t("cases.saveResult")}
+                          </button>
+                          <button
+                            onClick={() =>
+                              setResultForm((m) => ({ ...m, [s.id]: false }))
+                            }
+                            className="btn btn-line"
+                          >
+                            {t("common.cancel")}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* audit trail */}
+        <div className="rounded-2xl border border-line bg-card">
+          <div className="border-b border-line-2 px-4 py-3">
+            <div className="text-[13px] font-bold uppercase tracking-[0.1em]">
+              {t("cases.auditTitle")}
+            </div>
+            <div className="text-[11.5px] text-mut">{t("cases.auditHint")}</div>
+          </div>
+          {transcript.length === 0 ? (
+            <div className="px-4 py-5 text-center text-[12.5px] text-mut">
+              {t("cases.auditEmpty")}
+            </div>
+          ) : (
+            <ul className="divide-y divide-line-2">
+              {transcript.map((ev) => (
+                <li key={ev.id} className="flex items-start gap-2.5 px-4 py-2.5">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+                      <span className="font-semibold capitalize text-ink-2">
+                        {t(`cases.event.${ev.event_type}`)}
+                      </span>
+                      {ev.from_status && ev.to_status && (
+                        <span className="flex items-center gap-1 text-[11px] text-mut">
+                          {t(`cases.status.${ev.from_status}`)}
+                          <ArrowRightIcon className="h-3 w-3" />
+                          {t(`cases.status.${ev.to_status}`)}
+                        </span>
+                      )}
+                    </div>
+                    {ev.note && (
+                      <div className="text-[11.5px] text-mut">{ev.note}</div>
+                    )}
+                    <div className="text-[10.5px] text-mut2">{fmtDate(ev.created_at)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="mt-6 flex flex-col gap-5">
@@ -465,9 +1167,11 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
               const tr = r.triage_results[0];
               const c = tr?.disease_candidates[0];
               const chip = tr ? CHIP[tr.urgency] : null;
-              const decision = r.cases[0]?.status;
+              const cs = r.cases[0];
+              const decision = cs?.status;
               const isNew = newIds.has(r.id);
               const hasExtra = !!r.photo_url || !!r.free_text;
+              const hasSample = (cs?.samples?.length ?? 0) > 0;
               return (
                 <li
                   key={r.id}
@@ -482,7 +1186,7 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[14.5px] font-bold text-ink">
-                        {c ? candidateName(c, locale) : t("cases.pendingTriage")}
+                        {cs ? diseaseName(cs.disease_code, locale) : c ? candidateName(c, locale) : t("cases.pendingTriage")}
                       </span>
                       {chip && tr && (
                         <span
@@ -490,6 +1194,23 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                           style={{ background: chip.bg, color: chip.fg }}
                         >
                           {t(`triage.urgency.${tr.urgency}`)}
+                        </span>
+                      )}
+                      {cs && (
+                        <span
+                          className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+                          style={{
+                            background: (CASE_CHIP[cs.status] ?? CASE_CHIP.suspected).bg,
+                            color: (CASE_CHIP[cs.status] ?? CASE_CHIP.suspected).fg,
+                          }}
+                        >
+                          {t(`cases.status.${cs.status}`)}
+                        </span>
+                      )}
+                      {hasSample && (
+                        <span className="flex items-center gap-1 rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-mut">
+                          <FlaskIcon className="h-3 w-3" />
+                          {t("cases.hasSample")}
                         </span>
                       )}
                       {hasExtra && (
@@ -544,16 +1265,22 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                           </button>
                         </>
                       )}
-                      {decision === "confirmed" && (
-                        <span className="flex items-center gap-1.5 rounded-full bg-sage-soft px-3 py-1.5 text-[11.5px] font-bold text-sage">
-                          <CheckIcon className="h-3.5 w-3.5" />
-                          {t("cases.confirmedChip")}
-                        </span>
-                      )}
-                      {decision === "rejected" && (
-                        <span className="flex items-center gap-1.5 rounded-full bg-paper px-3 py-1.5 text-[11.5px] font-bold text-mut">
-                          <XIcon className="h-3.5 w-3.5" />
-                          {t("cases.rejectedChip")}
+                      {decision && (
+                        <span
+                          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold"
+                          style={{
+                            background: (CASE_CHIP[decision] ?? CASE_CHIP.suspected).bg,
+                            color: (CASE_CHIP[decision] ?? CASE_CHIP.suspected).fg,
+                          }}
+                        >
+                          {decision === "confirmed" ? (
+                            <CheckIcon className="h-3.5 w-3.5" />
+                          ) : decision === "rejected" ? (
+                            <XIcon className="h-3.5 w-3.5" />
+                          ) : (
+                            <ArrowRightIcon className="h-3.5 w-3.5" />
+                          )}
+                          {t(`cases.status.${decision}`)}
                         </span>
                       )}
                     </div>
@@ -603,6 +1330,7 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                         {t(`triage.urgency.${selected.triage_results[0].urgency}`)}
                       </span>
                     )}
+                    {selected.cases[0] && caseChip(selected.cases[0])}
                   </div>
                   <div className="mt-1 text-[12.5px] text-mut">
                     {[selected.village, selected.taluka, selected.district].filter(Boolean).join(", ")} ·{" "}
@@ -763,6 +1491,8 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                     </div>
                   )}
 
+                  {selected.cases[0] && renderCaseBlock(selected.cases[0])}
+
                   <div className="rounded-xl bg-paper/60 px-3 py-2 text-[11px] text-mut">
                     {t("common.reportMeta", {
                       id: selected.id,
@@ -795,15 +1525,25 @@ export function OfficerClient({ initialRows, initialClusters, kpis, canDecide }:
                       {t("cases.reject")}
                     </button>
                   </>
-                ) : selected.cases[0]?.status === "confirmed" ? (
+                ) : selected.cases[0]?.status === "contained" ? (
                   <div className="flex w-full items-center justify-center gap-2 rounded-full bg-sage-soft px-4 py-3 text-[14px] font-bold text-sage">
                     <CheckIcon className="h-4 w-4" />
-                    {t("common.confirmedNotified")}
+                    {t("cases.containedFooter")}
+                  </div>
+                ) : selected.cases[0]?.status === "closed" ? (
+                  <div className="flex w-full items-center justify-center gap-2 rounded-full bg-paper px-4 py-3 text-[14px] font-bold text-mut">
+                    <CheckIcon className="h-4 w-4" />
+                    {t("cases.closedFooter")}
                   </div>
                 ) : selected.cases[0]?.status === "rejected" ? (
                   <div className="flex w-full items-center justify-center gap-2 rounded-full bg-paper px-4 py-3 text-[14px] font-bold text-mut">
                     <XIcon className="h-4 w-4" />
                     {t("common.rejectedClosed")}
+                  </div>
+                ) : selected.cases[0]?.status === "confirmed" ? (
+                  <div className="flex w-full items-center justify-center gap-2 rounded-full bg-sage-soft px-4 py-3 text-[14px] font-bold text-sage">
+                    <CheckIcon className="h-4 w-4" />
+                    {t("common.confirmedNotified")}
                   </div>
                 ) : (
                   <div className="w-full text-center text-[13px] text-mut">{t("common.awaitingDecision")}</div>
