@@ -48,7 +48,7 @@ Say: “The system shows why, not only what. Every advisory says preliminary tri
 
 Officer → **Cases**.
 
-Show: district map, report source, queue, confirm/reject, case escalation and sample QR.
+Show: district map, report source and queue. Open the contained FMD case near AIKTC to show assigned Dr. Sana Shaikh, sample `PS-RAIGAD-FMD-01`, positive result, seven-step audit trail and the public traceability QR.
 
 Say: “The officer sees only their district. Confirmation or rejection becomes a labelled example for future model improvement. A confirmed case moves through vet assignment, sample custody, lab result and containment.”
 
