@@ -73,7 +73,7 @@ returns table (name text, taluka text, district text, distance_km double precisi
 language sql stable set search_path = public
 as $$
   select v.name, v.taluka, v.district,
-         round(st_distance(v.geo::geography, st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography) / 1000.0, 2) as distance_km
+         round((st_distance(v.geo::geography, st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography) / 1000.0)::numeric, 2) as distance_km
   from public.villages v
   order by v.geo <-> st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography
   limit 1;
