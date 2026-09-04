@@ -8,7 +8,7 @@ export function EarlyWarningPanel({forecasts,signals,points}:{forecasts:RiskFore
  const t=useTranslations("forecast"); const top=forecasts[0]; const flagged=signals.filter(s=>s.status==="field_verify");
  return <section className="card overflow-hidden" aria-labelledby="forecast-title">
   <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line-2 p-5">
-   <div><div className="eyebrow">{t("eyebrow")}</div><h2 id="forecast-title" className="font-serif text-xl font-semibold">{t("title")}</h2><p className="mt-1 text-[12.5px] text-mut">{t("hint")}</p></div>
+   <div><div className="flex flex-wrap items-center gap-2"><div className="eyebrow">{t("eyebrow")}</div><span className="rounded-full border border-gold bg-gold-soft px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.1em] text-ink-2">{t("demoData")}</span></div><h2 id="forecast-title" className="font-serif text-xl font-semibold">{t("title")}</h2><p className="mt-1 text-[12.5px] text-mut">{t("hint")}</p></div>
    {top&&<div className={`rounded-2xl px-4 py-2 text-right ${top.risk_level==="high"?"bg-[#F9E3DB] text-[#A8431F]":top.risk_level==="medium"?"bg-[#FBF3DC] text-[#8A6D1F]":"bg-[#EDF0DE] text-[#5E6E3E]"}`}><div className="text-[10px] font-bold uppercase tracking-wider">{t(`level.${top.risk_level}`)}</div><div className="font-serif text-2xl font-semibold">{Math.round(top.risk_score)}<span className="text-sm">/100</span></div></div>}
   </div>
   <div className="grid gap-0 lg:grid-cols-[1.25fr_.75fr]">
