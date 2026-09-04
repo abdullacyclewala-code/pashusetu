@@ -61,7 +61,7 @@ const NAV: NavItem[] = [
     roles: ["farmer", "pashu_mitra", "admin"],
     icon: HerdIcon,
   },
-  { key: "iot", href: "/dashboard/iot", roles: ["vet", "officer", "admin"], icon: TriageIcon },
+  { key: "iot", href: "/dashboard/iot", roles: ["farmer", "admin"], icon: TriageIcon },
   { key: "alerts", href: "/dashboard/alerts", roles: ALL, icon: BellIcon },
   {
     key: "whatsapp",

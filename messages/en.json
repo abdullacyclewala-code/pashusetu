@@ -632,11 +632,11 @@
     }
   },
   "iot": {
-    "eyebrow": "Automated surveillance",
-    "heading": "Herd sensor digital twin",
-    "lede": "Production-shaped wearable telemetry that can create a report before a farmer notices clinical signs.",
-    "simTitle": "Scenario simulator",
-    "simHint": "Streams three collars through healthy baseline days, a heat-wave control, then an FMD-like fever and rumination drop. The schema is identical for real hardware.",
+    "eyebrow": "My herd sensors",
+    "heading": "My animal sensors",
+    "lede": "Connect and monitor sensors fitted to your own animals.",
+    "simTitle": "Test my sensor setup",
+    "simHint": "Demo your three linked collars across healthy days, a heat-wave control and an FMD-like pattern. Real sensors send the same data format.",
     "run": "Run 7-day scenario",
     "reset": "Reset demo",
     "running": "Simulating…",
@@ -653,10 +653,14 @@
     "deviation": "+{temp}°C · rumination down {rum}%",
     "reportCreated": "Automatic report created",
     "noDetections": "Run the scenario to see explainable detections.",
-    "autoReports": "Automatic reports",
+    "autoReports": "My sensor reports",
     "animalsAffected": "animals affected",
-    "noReports": "No sensor-generated reports yet.",
+    "noReports": "No sensor report for your herd yet.",
     "error": "Simulation failed.",
-    "disclaimer": "Sensor screening is preliminary triage, not a diagnosis. Every automatic report requires veterinary verification and must never replace a veterinarian."
+    "disclaimer": "Sensor screening is preliminary triage, not a diagnosis. Every automatic report requires veterinary verification and must never replace a veterinarian.",
+    "farmerMeaningTitle": "What the sensor report means",
+    "farmerMeaningBody": "PashuSetu watches changes in temperature, rumination, activity and milk yield. One unusual reading stays private as an early warning for you—it is not a diagnosis.",
+    "manualReport": "Report symptoms manually",
+    "privacyNote": "Your animal and raw sensor details are private. Other farmers cannot see them. An officer receives only a district-level alert when several matching signals form a serious area pattern; you can always submit a manual report sooner."
   }
 }
