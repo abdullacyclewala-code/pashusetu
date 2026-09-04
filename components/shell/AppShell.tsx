@@ -65,7 +65,7 @@ const NAV: NavItem[] = [
   {
     key: "whatsapp",
     href: "/dashboard/whatsapp",
-    roles: ["vet", "officer", "lab", "admin"],
+    roles: ALL,
     icon: WhatsAppIcon,
   },
 ];

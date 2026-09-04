@@ -584,6 +584,26 @@
     "guidanceTitle": "Guided (buttons)",
     "guidanceHint": "Turns the number into a button-driven conversation — the best fit for low-literacy farmers. Uses the channel session store (migration 0007).",
     "sentNow": "Just now",
-    "restart": "Restart"
+    "restart": "Restart",
+    "farmerHeading": "Report a sick animal by WhatsApp",
+    "farmerLede": "No app needed. Message the PashuSetu number with the animal, the signs and the counts — you'll get an instant reply in your own language.",
+    "numberLabel": "PashuSetu WhatsApp number",
+    "openWhatsapp": "Open WhatsApp",
+    "howTitle": "How it works",
+    "how1": "Open WhatsApp and send a message to the number above.",
+    "how2": "Tell us the animal, the signs and how many are sick or dead.",
+    "how3": "You'll get the suspected disease and first-aid advice instantly.",
+    "exampleSuffix": "Tap an example to open WhatsApp with it pre-filled.",
+    "yourReportsTitle": "Your reports",
+    "yourReportsEmpty": "You haven't reported yet. Use the WhatsApp button above, or the Report tab.",
+    "sourceLabel": "Source",
+    "sourceApp": "In-app",
+    "sourceWhatsapp": "WhatsApp",
+    "exampleReplyTitle": "Example of the reply you receive",
+    "pilotNote": "Pilot number — we will advertise this in the village campaign.",
+    "confirmPrefix": "Thank you. Your report is recorded.",
+    "diseaseExample": "Lumpy Skin Disease",
+    "exampleAdvice": "Isolate the affected animal, stop its movement, and contact your nearest vet. First aid: clean the skin, apply soothing ointment, ensure feed and water.",
+    "disclaimer": "This is preliminary triage, not a diagnosis. Please consult a veterinarian."
   }
 }
