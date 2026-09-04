@@ -91,4 +91,20 @@ async function pushOne(
       { onConflict: "id", ignoreDuplicates: true }
     );
   if (error) throw new Error(error.message);
+
+  // Persist visual inference as its own row only after the report exists.
+  // The RPC validates ownership and model output; it never modifies the
+  // independently generated rule-engine result or report urgency.
+  if (item.imageScreen) {
+    const { error: imageError } = await supabase.rpc("save_image_model_result", {
+      p_report_id: item.id,
+      p_result: item.imageScreen,
+    });
+    // During a rolling deploy the client may arrive before migration 0015.
+    // Do not strand an otherwise-synced health report if PostgREST has not
+    // discovered the new RPC yet; all other persistence errors remain retryable.
+    if (imageError && imageError.code !== "PGRST202") {
+      throw new Error(`image screen: ${imageError.message}`);
+    }
+  }
 }

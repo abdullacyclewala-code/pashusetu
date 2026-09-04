@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { screenCattleSkin, type SkinScreenResult } from "@/lib/image-model/infer";
 
-export function SkinScreenCard({ blob, species }: { blob: Blob; species: string }) {
+export function SkinScreenCard({ blob, species, onResult }: { blob: Blob; species: string; onResult?: (result: SkinScreenResult | null) => void }) {
   const t=useTranslations("imageModel");
   const [state,setState]=useState<{loading:boolean;result?:SkinScreenResult;error?:boolean}>({loading:true});
   useEffect(()=>{ let active=true; setState({loading:true});
     if(!["cattle","buffalo"].includes(species)){ setState({loading:false,error:true}); return; }
-    screenCattleSkin(blob).then(result=>active&&setState({loading:false,result})).catch(()=>active&&setState({loading:false,error:true}));
+    screenCattleSkin(blob).then(result=>{if(active){setState({loading:false,result});onResult?.(result)}}).catch(()=>{if(active){setState({loading:false,error:true});onResult?.(null)}});
     return()=>{active=false};
-  },[blob,species]);
+  },[blob,species,onResult]);
   if(state.loading) return <div className="rounded-xl border border-line bg-paper/60 p-4 text-[13px] text-mut"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-sage"/>{t("analysing")}</div>;
   if(state.error) return <div className="rounded-xl border border-line bg-paper/60 p-4 text-[13px] text-mut">{t("unavailable")}</div>;
   const r=state.result!;

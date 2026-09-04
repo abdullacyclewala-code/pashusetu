@@ -405,7 +405,7 @@ export function OfficerClient({
       rows
         .filter((r) => r.lat != null && r.lng != null)
         .map((r) => {
-          const tr = r.triage_results[0];
+          const tr = (r.triage_results.find((x) => x.source === "rule_engine") ?? r.triage_results[0]);
           const c = tr?.disease_candidates[0];
           return {
             id: r.id,
@@ -445,7 +445,7 @@ export function OfficerClient({
       "sample_result",
     ];
     const lines = filtered.map((r) => {
-      const tr = r.triage_results[0];
+      const tr = (r.triage_results.find((x) => x.source === "rule_engine") ?? r.triage_results[0]);
       const c = tr?.disease_candidates[0];
       const cs = r.cases[0];
       const sm = cs?.samples?.[0];
@@ -1172,7 +1172,7 @@ export function OfficerClient({
         ) : (
           <ul className="border-t border-line-2">
             {filtered.map((r) => {
-              const tr = r.triage_results[0];
+              const tr = (r.triage_results.find((x) => x.source === "rule_engine") ?? r.triage_results[0]);
               const c = tr?.disease_candidates[0];
               const chip = tr ? CHIP[tr.urgency] : null;
               const cs = r.cases[0];
@@ -1323,19 +1323,19 @@ export function OfficerClient({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-serif text-[20px] font-semibold leading-tight">
-                      {selected.triage_results[0]?.disease_candidates[0]
-                        ? candidateName(selected.triage_results[0].disease_candidates[0], locale)
+                      {(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0])?.disease_candidates[0]
+                        ? candidateName((selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).disease_candidates[0], locale)
                         : t("cases.pendingTriage")}
                     </h3>
-                    {selected.triage_results[0] && (
+                    {(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]) && (
                       <span
                         className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
                         style={{
-                          background: CHIP[selected.triage_results[0].urgency].bg,
-                          color: CHIP[selected.triage_results[0].urgency].fg,
+                          background: CHIP[(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).urgency].bg,
+                          color: CHIP[(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).urgency].fg,
                         }}
                       >
-                        {t(`triage.urgency.${selected.triage_results[0].urgency}`)}
+                        {t(`triage.urgency.${(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).urgency}`)}
                       </span>
                     )}
                     {selected.cases[0] && caseChip(selected.cases[0])}
@@ -1467,7 +1467,7 @@ export function OfficerClient({
                     </div>
                   </div>
 
-                  {selected.triage_results[0] && (
+                  {(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]) && (
                     <div className="rounded-2xl border border-line bg-card">
                       <div className="flex items-center gap-2 px-4 py-3">
                         <span className="grid h-7 w-7 place-items-center rounded-xl bg-sage-soft text-sage">
@@ -1476,18 +1476,18 @@ export function OfficerClient({
                         <span className="text-[12.5px] font-bold uppercase tracking-[0.1em]">{t("common.triageResult")}</span>
                         <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-mut">
                           <ClockIcon className="h-3.5 w-3.5" />
-                          {t("common.confidencePct", { pct: Math.round((selected.triage_results[0].confidence ?? 0) * 100) })}
+                          {t("common.confidencePct", { pct: Math.round(((selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).confidence ?? 0) * 100) })}
                         </span>
                       </div>
                       <div className="border-t border-line-2 px-4 py-3">
-                        <AdvisoryPanel candidate={selected.triage_results[0].disease_candidates?.[0]} />
-                        {selected.triage_results[0].disease_candidates?.length > 1 && (
+                        <AdvisoryPanel candidate={(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).disease_candidates?.[0]} />
+                        {(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).disease_candidates?.length > 1 && (
                           <div className="mt-3">
                             <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">
                               {t("common.otherPossibilities")}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
-                              {selected.triage_results[0].disease_candidates.slice(1, 4).map((c: Candidate) => (
+                              {(selected.triage_results.find((x) => x.source === "rule_engine") ?? selected.triage_results[0]).disease_candidates.slice(1, 4).map((c: Candidate) => (
                                 <span key={c.code} className="rounded-full bg-paper px-2.5 py-1 text-[11.5px] text-mut">
                                   {candidateName(c, locale)} · {Math.round(c.confidence * 100)}%
                                 </span>

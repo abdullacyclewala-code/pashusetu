@@ -726,5 +726,25 @@
       "lsd_like": "LSD-like",
       "fmd_like": "FMD-like"
     }
+  },
+  "combinedAssessment": {
+    "eyebrow": "Combined screening summary",
+    "agree": {
+      "title": "Photo and symptoms point in the same direction",
+      "body": "The visual model supports the leading symptom-based possibility. Treat this as stronger screening evidence, not confirmation."
+    },
+    "different": {
+      "title": "Photo and symptoms do not agree",
+      "body": "The visual pattern points elsewhere. This may reflect another condition, an unclear photo, or overlapping signs; veterinary review is important."
+    },
+    "normalImage": {
+      "title": "Photo appears normal, but symptoms still matter",
+      "body": "A normal-looking photo cannot rule out disease. Many conditions have no visible skin changes or may be outside the frame."
+    },
+    "inconclusive": {
+      "title": "Symptoms provide the useful signal",
+      "body": "The image model was not confident enough to add a visual interpretation."
+    },
+    "authority": "The symptom rule engine covers more diseases and sets urgency. The image model only checks normal-, LSD-, and FMD-like visual patterns and can never lower symptom urgency."
   }
 }

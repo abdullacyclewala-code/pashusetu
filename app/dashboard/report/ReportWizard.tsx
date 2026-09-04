@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { localDb, type ReportPayload } from "@/lib/offline/db";
@@ -11,6 +11,8 @@ import { SPECIES, SYMPTOM_GROUPS } from "@/lib/report/constants";
 import { TriageCard } from "@/components/triage/TriageCard";
 import { SpeciesIcon } from "@/components/SpeciesIcon";
 import { SkinScreenCard } from "@/components/image-model/SkinScreenCard";
+import { CombinedAssessment } from "@/components/triage/CombinedAssessment";
+import type { SkinScreenResult } from "@/lib/image-model/infer";
 import { CheckIcon, ClockIcon, CameraIcon, PinIcon } from "@/components/icons";
 import type { TriageRow } from "@/lib/triage/types";
 import type { Profile } from "@/lib/types";
@@ -67,6 +69,8 @@ export function ReportWizard({
   const [done, setDone] = useState<"synced" | "queued" | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
   const [triage, setTriage] = useState<TriageRow | null>(null);
+  const [imageScreen, setImageScreen] = useState<SkinScreenResult | null>(null);
+  const handleImageResult = useCallback((result: SkinScreenResult | null) => setImageScreen(result), []);
 
   // After a synced submit, poll briefly for the triage result (the DB
   // trigger + edge function usually land it within a second or two).
@@ -124,6 +128,7 @@ export function ReportWizard({
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
+    setImageScreen(null);
     try {
       const { blob, type } = await compressImage(file);
       if (form.photo) URL.revokeObjectURL(form.photo.previewUrl);
@@ -198,6 +203,7 @@ export function ReportWizard({
         payload,
         photo: form.photo?.blob ?? null,
         photoType: form.photo?.type ?? null,
+        imageScreen,
         createdAt: Date.now(),
         attempts: 0,
       });
@@ -246,6 +252,7 @@ export function ReportWizard({
               onClick={() => {
                 setDone(null);
                 setTriage(null);
+                setImageScreen(null);
                 setStep(0);
                 setForm((f) => ({
                   ...f,
@@ -282,6 +289,12 @@ export function ReportWizard({
               {t("triage.pendingResult")}
             </div>
           ))}
+        {imageScreen && form.photo && (
+          <SkinScreenCard blob={form.photo.blob} species={form.species} />
+        )}
+        {triage && imageScreen && (
+          <CombinedAssessment triage={triage} image={imageScreen} />
+        )}
       </div>
     );
   }
@@ -441,12 +454,13 @@ export function ReportWizard({
                   alt=""
                   className="max-h-64 w-full rounded-xl border border-line object-cover"
                 />
-                <SkinScreenCard blob={form.photo.blob} species={form.species} />
+                <SkinScreenCard blob={form.photo.blob} species={form.species} onResult={handleImageResult} />
                 <button
                   type="button"
                   className="btn btn-line btn-sm self-start"
                   onClick={() => {
                     URL.revokeObjectURL(form.photo!.previewUrl);
+                    setImageScreen(null);
                     setForm((f) => ({ ...f, photo: null }));
                   }}
                 >

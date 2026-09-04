@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import type { SkinScreenResult } from "@/lib/image-model/infer";
 
 /**
  * Local offline store (IndexedDB via Dexie).
@@ -32,6 +33,7 @@ export interface PendingReport {
   payload: ReportPayload;
   photo: Blob | null;
   photoType: string | null;
+  imageScreen?: SkinScreenResult | null;
   createdAt: number;
   attempts: number;
   lastError?: string;
