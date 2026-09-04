@@ -432,6 +432,7 @@ create policy "samples officials" on public.samples
                and c.district = public.my_district())
   );
 
+drop policy if exists "case_events officials" on public.case_events;
 create policy "case_events officials" on public.case_events
   for select using (
     public.my_role() = 'admin'
