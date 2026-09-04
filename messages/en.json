@@ -196,7 +196,7 @@
     "confirmCreateSample": "Sample type",
     "samplesEmpty": "No samples collected for this case yet.",
     "specimenType": "Specimen",
-    "scanHint": "Scan me",
+    "scanHint": "Scan to track",
     "collectedAt": "Collected",
     "receivedAt": "Received",
     "resultedAt": "Resulted",
@@ -243,7 +243,8 @@
       "sample_status": "Sample status",
       "sample_result": "Result entered",
       "note": "Note added"
-    }
+    },
+    "viewTrace": "View traceability"
   },
   "herd": {
     "eyebrow": "Herd health",
@@ -494,5 +495,41 @@
   "sync": {
     "pending": "{count, plural, one {# report waiting to sync} other {# reports waiting to sync}}",
     "syncing": "Syncing…"
+  },
+  "sample": {
+    "script": "Pashu Setu",
+    "home": "Home",
+    "eyebrow": "Sample traceability",
+    "heading": "Lab sample history",
+    "lede": "Scan the barcode to view this sample's journey from collection to lab result. This is an official trace record.",
+    "notFoundTitle": "Sample not found",
+    "notFoundBody": "No sample matches “{barcode}”. Please check the barcode or contact your veterinary officer.",
+    "sampleLabel": "Sample barcode",
+    "disease": "Suspected disease",
+    "specimen": {
+      "blood": "Blood",
+      "swab": "Swab",
+      "serum": "Serum",
+      "milk": "Milk",
+      "urine": "Urine"
+    },
+    "collectedAt": "Collected",
+    "resultedAt": "Resulted",
+    "labResult": "Lab result",
+    "result": {
+      "positive": "Positive",
+      "negative": "Negative",
+      "inconclusive": "Inconclusive"
+    },
+    "custodyChain": "Chain of custody",
+    "custodyEmpty": "No custody records yet.",
+    "disclaimer": "This shows preliminary laboratory information, not a diagnosis. Always consult a veterinarian for treatment decisions.",
+    "footer": "PashuSetu · Animal health and outbreak early warning",
+    "status": {
+      "collected": "Collected",
+      "in_transit": "In transit",
+      "received": "Received",
+      "resulted": "Resulted"
+    }
   }
 }

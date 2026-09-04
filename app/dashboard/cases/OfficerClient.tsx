@@ -787,7 +787,7 @@ export function OfficerClient({
                       {s.barcode && (
                         <div className="rounded-xl border border-line bg-paper p-2.5">
                           <QRCodeSVG
-                            value={s.barcode}
+                            value={`${typeof window !== "undefined" ? window.location.origin : ""}/sample/${s.barcode}`}
                             size={96}
                             bgColor="#ffffff"
                             fgColor="#1a1a1a"
@@ -796,6 +796,14 @@ export function OfficerClient({
                           <div className="mt-1 text-center text-[9.5px] font-semibold uppercase tracking-[0.1em] text-mut2">
                             {t("cases.scanHint")}
                           </div>
+                          <a
+                            href={`/sample/${s.barcode}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block text-center text-[10px] font-bold text-accent underline"
+                          >
+                            {t("cases.viewTrace")}
+                          </a>
                         </div>
                       )}
                     </div>

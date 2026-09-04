@@ -406,6 +406,45 @@ begin
 end $$;
 
 -- ============================================================================
+-- Public sample trace-back (no PII). Security definer so anonymous guests can
+-- scan a barcode and see the sample status, lab result, and chain of custody.
+-- ============================================================================
+create or replace function public.sample_trace(p_barcode text)
+returns jsonb language plpgsql security definer set search_path = public
+as $$
+declare v jsonb;
+begin
+  select jsonb_build_object(
+    'found', true,
+    'barcode', s.barcode,
+    'status', s.status::text,
+    'specimen_type', s.specimen_type,
+    'disease_code', s.disease_code,
+    'result', s.result,
+    'result_summary', s.result_summary,
+    'collected_at', s.collected_at,
+    'received_at', s.received_at,
+    'resulted_at', s.resulted_at,
+    'created_at', s.created_at,
+    'custody_json', s.custody_json,
+    'case_id', s.case_id::text,
+    'case_status', c.status::text,
+    'disease', coalesce(d.name_en, s.disease_code),
+    'disease_hi', coalesce(d.name_hi, s.disease_code),
+    'disease_mr', coalesce(d.name_mr, s.disease_code)
+  ) into v
+  from public.samples s
+  left join public.cases c on c.id = s.case_id
+  left join public.diseases d on d.code = s.disease_code
+  where s.barcode = p_barcode;
+  if found then
+    return v;
+  end if;
+  return jsonb_build_object('found', false, 'barcode', p_barcode);
+end $$;
+grant execute on function public.sample_trace(text) to anon, authenticated;
+
+-- ============================================================================
 -- RLS
 -- ============================================================================
 drop policy if exists "cases officials" on public.cases;
