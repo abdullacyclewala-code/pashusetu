@@ -138,7 +138,8 @@
     "doneQueuedBody": "No connection right now — your report is safely stored on this phone and will sync automatically when you are back online.",
     "another": "New report",
     "recent": "Recent reports",
-    "photoAttached": "Photo attached"
+    "photoAttached": "Photo attached",
+    "gpsResolved": "Located near {place} · accuracy about {accuracy} m. You can correct the fields below."
   },
   "cases": {
     "eyebrow": "District surveillance",

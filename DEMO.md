@@ -20,7 +20,7 @@ Officer → **Alerts**.
 
 Say: “Before a farmer reports visible symptoms, a village dairy can show a shared milk-yield dip. PashuSetu removes weekly seasonality and heat, humidity and rainfall effects. Only an unexplained dip below −2.5 sigma for two consecutive days asks an officer to field-verify. This is a signal score, not disease probability.”
 
-Show: Shirur dairy card, expected vs observed yield, risk-zone map.
+Show: AIKTC / Khandagaon dairy card, expected vs observed yield, risk-zone map.
 
 ### 0:35–1:15 — The herd reports itself
 
@@ -77,7 +77,7 @@ Say: “The same report pipeline works without the app. Marathi text becomes a n
 - [ ] Heat-wave dairy dip remains normal; unexplained two-day dip field-verifies.
 - [ ] Sensor heat control creates no anomaly; disease scenario creates a private report.
 - [ ] Other farmer/officer cannot read raw sensor data.
-- [ ] District cluster alert appears to the Pune officer.
+- [ ] District cluster alert appears to the Raigad officer.
 - [ ] Officer can confirm/reject and export CSV.
 - [ ] Sample QR opens anonymous non-PII traceability.
 - [ ] Marathi/Hindi/English switches leave no English-only UI.

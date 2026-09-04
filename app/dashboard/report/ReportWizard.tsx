@@ -32,7 +32,7 @@ interface FormState {
   deadCount: number;
   animalId: string | null;
   photo: { blob: Blob; type: string; previewUrl: string } | null;
-  gps: { lat: number; lng: number } | null;
+  gps: { lat: number; lng: number; accuracy: number } | null;
   village: string;
   taluka: string;
   district: string;
@@ -142,15 +142,31 @@ export function ReportWizard({
     }
     setGpsState("loading");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        const gps = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        };
+        // Resolve GPS to the nearest registered village so coordinates and
+        // officer jurisdiction cannot disagree. Manual correction stays possible.
+        const supabase = createClient();
+        const { data } = await supabase.rpc("nearest_village", {
+          p_lat: gps.lat,
+          p_lng: gps.lng,
+        });
+        const nearest = Array.isArray(data) ? data[0] : null;
         setForm((f) => ({
           ...f,
-          gps: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          gps,
+          village: nearest?.name ?? f.village,
+          taluka: nearest?.taluka ?? f.taluka,
+          district: nearest?.district ?? f.district,
         }));
         setGpsState("idle");
       },
       () => setGpsState("error"),
-      { enableHighAccuracy: true, timeout: 10_000 }
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 }
     );
   }
 
@@ -205,7 +221,7 @@ export function ReportWizard({
         <div className="card flex flex-col items-center gap-4 p-8 text-center">
           <span
             className={`grid h-14 w-14 place-items-center rounded-full text-2xl ${
-              done === "synced" ? "bg-sage-soft" : "bg-[#FBF3DC]"
+              done === "synced" ? "bg-accent-soft" : "bg-[#FBF3DC]"
             }`}
           >
             {done === "synced" ? (
@@ -479,6 +495,14 @@ export function ReportWizard({
                   </>
                 )}
               </button>
+              {form.gps && gpsState !== "error" && (
+                <p className="rounded-xl border border-sage/25 bg-accent-soft px-3 py-2 text-[12px] leading-relaxed text-ink-2">
+                  {t("report.gpsResolved", {
+                    place: [form.village, form.taluka, form.district].filter(Boolean).join(", "),
+                    accuracy: Math.round(form.gps.accuracy),
+                  })}
+                </p>
+              )}
               {gpsState === "error" && (
                 <p className="rounded-lg bg-[#FBEDE7] px-3 py-2 text-[13px] text-accent">
                   {t("report.gpsError")}
