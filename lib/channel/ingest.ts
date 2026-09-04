@@ -27,6 +27,7 @@ import {
   detectSymptoms,
   detectCounts,
   detectVillage,
+  ewkbPointToLngLat,
   parseFreeText,
   type VillageRow,
 } from "./parser";
@@ -73,6 +74,13 @@ function ewkt(lng: number, lat: number): string {
   return `SRID=4326;POINT(${lng} ${lat})`;
 }
 
+/** Forward-geocode a matched village row to an EWKT string (or null). */
+function villageGeoEwkt(v: VillageRow | null | undefined): string | null {
+  if (!v) return null;
+  const pt = ewkbPointToLngLat(v.geo);
+  return pt ? ewkt(pt.lng, pt.lat) : null;
+}
+
 export async function ingestMessage(
   ctx: IngestContext,
   msg: InboundMessage
@@ -84,7 +92,7 @@ export async function ingestMessage(
   // 1) Load the reference geometry once.
   const { data: villages } = await supabase
     .from("villages")
-    .select("name, taluka, district")
+    .select("name, taluka, district, geo")
     .returns<VillageRow[]>();
 
   // 2) Resolve / provision the farmer. District/village hints come from the msg.
@@ -163,6 +171,17 @@ export async function ingestMessage(
     draft.deadCount ??
     (parsedHasCount(msg.text ?? "") ? parsed.deadCount : null);
 
+  // Resolve a map point for the report. A shared-location pin always wins;
+  // otherwise, if a *typed* village name was matched (e.g. "Shirur"), geocode
+  // it from the villages table so the report gets a dot on the officer map.
+  const resolvedVillageName = draft.village ?? parsed.village ?? farmer.village;
+  const resolvedVillageRow =
+    (villages ?? []).find((v) => v.name === resolvedVillageName) ?? null;
+  const resolvedGeoEwkt =
+    (draft.geo as string | null) ??
+    (recv ? ewkt(recv.lng, recv.lat) : villageGeoEwkt(resolvedVillageRow)) ??
+    null;
+
   const isGuided = interactive !== null || step !== "idle";
 
   // 6) Guided (multi-turn, button-driven) state machine.
@@ -188,7 +207,7 @@ export async function ingestMessage(
         village: draft.village ?? parsed.village ?? farmer.village,
         taluka: draft.taluka ?? parsed.taluka ?? farmer.taluka,
         district: draft.district ?? parsed.district ?? farmer.district,
-        geoEwkt: (draft.geo as string | null) ?? (recv ? ewkt(recv.lng, recv.lat) : null),
+        geoEwkt: resolvedGeoEwkt,
         matchedVillageName: draft.village ?? parsed.matchedVillage?.name ?? null,
         farmer,
         vill,
@@ -239,7 +258,7 @@ export async function ingestMessage(
       village: draft.village ?? parsed.village ?? farmer.village,
       taluka: draft.taluka ?? parsed.taluka ?? farmer.taluka,
       district: draft.district ?? parsed.district ?? farmer.district,
-      geoEwkt: (draft.geo as string | null) ?? (recv ? ewkt(recv.lng, recv.lat) : null),
+      geoEwkt: resolvedGeoEwkt,
       matchedVillageName: draft.village ?? parsed.matchedVillage?.name ?? null,
       farmer,
       vill,

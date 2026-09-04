@@ -253,11 +253,37 @@ export function detectCounts(text: string): { sickCount: number; deadCount: numb
   return { sickCount, deadCount };
 }
 
-/** A village row as exposed by the villages table. */
+/** A village row as exposed by the villages table (geo = EWKB hex, may be null). */
 export interface VillageRow {
   name: string;
   taluka: string;
   district: string;
+  geo?: string | null;
+}
+
+/**
+ * Decode a PostGIS EWKB `POINT` (as returned by PostgREST for a geography
+ * column) into { lng, lat }. PostGIS geography/geometry points are encoded as
+ * little-endian EWKB: 1-byte byte order, 4-byte geometry type, 4-byte SRID,
+ * then lat/lng as IEEE doubles. Returns null for anything that isn't a point.
+ * This lets us forward-geocode a *typed* village name to map coordinates so
+ * the report shows a dot on the officer map (geo was previously only set for
+ * shared-location pins).
+ */
+export function ewkbPointToLngLat(hex: string | null | undefined): { lng: number; lat: number } | null {
+  if (!hex) return null;
+  const clean = hex.replace(/^0x/, "");
+  if (!/^[0-9a-fA-F]+$/.test(clean) || clean.length < 25) return null;
+  const buf = Buffer.from(clean, "hex");
+  const le = buf[0] === 1;
+  const type = le ? buf.readUInt32LE(1) : buf.readUInt32BE(1);
+  // 0x01 00 00 00 = POINT (PostGIS adds the 4th byte for the SRID/z flag)
+  const isPoint = (type & 0x0f) === 1;
+  if (!isPoint) return null;
+  const lng = le ? buf.readDoubleLE(9) : buf.readDoubleBE(9);
+  const lat = le ? buf.readDoubleLE(17) : buf.readDoubleBE(17);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  return { lng, lat };
 }
 
 /** Find the first village whose name appears in the text (case-insensitive). */
