@@ -69,10 +69,25 @@ async function pushOne(
       .data.publicUrl;
   }
 
+  // If GPS was denied but the farmer kept a registered village, use that
+  // village's centroid so the officer map still has an honest approximate dot.
+  // A real GPS point always wins and is never replaced.
+  let payload = item.payload;
+  if (!payload.geo && payload.village && payload.district) {
+    const { data: villagePoint } = await supabase.rpc("resolve_village_point", {
+      p_village: payload.village,
+      p_taluka: payload.taluka,
+      p_district: payload.district,
+    });
+    if (typeof villagePoint === "string" && villagePoint.startsWith("SRID=4326;POINT(")) {
+      payload = { ...payload, geo: villagePoint };
+    }
+  }
+
   const { error } = await supabase
     .from("reports")
     .upsert(
-      { id: item.id, ...item.payload, photo_url },
+      { id: item.id, ...payload, photo_url },
       { onConflict: "id", ignoreDuplicates: true }
     );
   if (error) throw new Error(error.message);

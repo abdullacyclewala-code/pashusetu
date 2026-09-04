@@ -8,5 +8,5 @@ import type { Candidate } from "./types";
 export function candidateName(c: Candidate, locale: string): string {
   if (locale === "hi" && c.name_hi) return c.name_hi;
   if (locale === "mr" && c.name_mr) return c.name_mr;
-  return c.name_en;
+  return c.name_en || c.code || "—";
 }
