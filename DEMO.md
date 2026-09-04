@@ -7,7 +7,7 @@
 1. Open `https://pashusetu-rho.vercel.app` once on laptop and phone so the PWA shell is cached.
 2. Keep two browser profiles open:
    - Farmer: `test.farmer@pashusetu.dev` / `Test@12345`
-   - Officer: `officer.pune@pashusetu.dev` / `Officer@12345`
+   - Officer: `officer.raigad@pashusetu.dev` / `Officer@12345`
 3. Farmer → Sensors → **Reset demo**, then leave the page ready.
 4. Officer → Alerts; confirm the risk outlook, dairy signal and cluster card load.
 5. Never claim seeded data is live government or cooperative data.
