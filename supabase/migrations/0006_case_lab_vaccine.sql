@@ -109,7 +109,7 @@ begin
   if not found then
     raise exception 'case not found or outside your district, or not actionable';
   end if;
-  perform public.append_event(p_case, 'assigned', v_case.status, v_case.status, 'Vet assigned');
+  perform public.append_event(p_case, 'assigned', v_case.status::text, v_case.status::text, 'Vet assigned');
   return v_case;
 end $$;
 
@@ -163,7 +163,7 @@ begin
    where id = p_case
   returning * into v_case;
 
-  perform public.append_event(p_case, 'status_changed', v_prev.status, p_status, p_note);
+  perform public.append_event(p_case, 'status_changed', v_prev.status::text, p_status, p_note);
 
   -- reflect on the report
   update public.reports
@@ -263,7 +263,7 @@ begin
   returning * into v_sample;
 
   update public.cases set updated_at = now() where id = p_case;
-  perform public.append_event(p_case, 'sample_created', v_case.status, v_case.status,
+  perform public.append_event(p_case, 'sample_created', v_case.status::text, v_case.status::text,
     'Sample created barcode ' || v_barcode || ' (' || p_specimen || ')');
   return v_sample;
 end $$;
@@ -302,7 +302,7 @@ begin
    where id = p_sample
   returning * into v_sample;
 
-  perform public.append_event(v_sample.case_id, 'sample_status', v_sample.status, p_status, p_note);
+  perform public.append_event(v_sample.case_id, 'sample_status', v_sample.status::text, p_status, p_note);
   update public.cases set updated_at = now() where id = v_sample.case_id;
   return v_sample;
 end $$;
@@ -336,7 +336,7 @@ begin
    where id = p_sample
   returning * into v_sample;
 
-  perform public.append_event(v_sample.case_id, 'sample_result', v_sample.status, 'resulted',
+  perform public.append_event(v_sample.case_id, 'sample_result', v_sample.status::text, 'resulted',
     'Result: ' || p_result);
   update public.cases set updated_at = now() where id = v_sample.case_id;
   return v_sample;
