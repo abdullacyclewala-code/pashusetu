@@ -216,7 +216,11 @@
       "confirmed": "Confirmed",
       "contained": "Contained",
       "closed": "Closed",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "collected": "Collected",
+      "in_transit": "In transit",
+      "received": "Received",
+      "resulted": "Resulted"
     },
     "sampleStatus": {
       "collected": "Collected",
@@ -244,7 +248,10 @@
       "sample_result": "Result entered",
       "note": "Note added"
     },
-    "viewTrace": "View traceability"
+    "viewTrace": "View traceability",
+    "auditTitle": "Case history",
+    "auditHint": "Every action on this case is recorded for traceability.",
+    "auditEmpty": "No actions recorded yet."
   },
   "herd": {
     "eyebrow": "Herd health",

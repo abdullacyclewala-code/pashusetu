@@ -216,7 +216,11 @@
       "confirmed": "पुष्टी",
       "contained": "नियंत्रित",
       "closed": "बंद",
-      "rejected": "नाकारले"
+      "rejected": "नाकारले",
+      "collected": "संकलित",
+      "in_transit": "वाहतुकीत",
+      "received": "प्राप्त",
+      "resulted": "निकाल"
     },
     "sampleStatus": {
       "collected": "संकलित",
@@ -244,7 +248,10 @@
       "sample_result": "निकाल नोंदवला",
       "note": "टीप जोडली"
     },
-    "viewTrace": "ट्रेसेबिलिटी पहा"
+    "viewTrace": "ट्रेसेबिलिटी पहा",
+    "auditTitle": "प्रकरणाचा इतिहास",
+    "auditHint": "ट्रेसेबिलिटीसाठी या प्रकरणातील प्रत्येक कृती नोंदवली जाते.",
+    "auditEmpty": "अजून एकही कृती नोंदवलेली नाही."
   },
   "herd": {
     "eyebrow": "पशुधन आरोग्य",
