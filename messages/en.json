@@ -600,7 +600,7 @@
     "sourceApp": "In-app",
     "sourceWhatsapp": "WhatsApp",
     "exampleReplyTitle": "Example of the reply you receive",
-    "pilotNote": "Pilot number — we will advertise this in the village campaign.",
+    "pilotNote": "Save this number — message it in WhatsApp to report a sick animal.",
     "confirmPrefix": "Thank you. Your report is recorded.",
     "diseaseExample": "Lumpy Skin Disease",
     "exampleAdvice": "Isolate the affected animal, stop its movement, and contact your nearest vet. First aid: clean the skin, apply soothing ointment, ensure feed and water.",

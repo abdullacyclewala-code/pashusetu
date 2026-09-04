@@ -25,9 +25,11 @@ export default async function WhatsAppPage() {
   const isOfficial = ["vet", "officer", "lab", "admin"].includes(role);
   if (!isFarmer && !isOfficial) redirect("/dashboard");
 
-  // The PashuSetu WhatsApp business number the farmer messages (pilot number).
-  const whatsappNumber =
-    process.env.WHATSAPP_FROM_NUMBER || "+919000000000";
+  // The PashuSetu WhatsApp number a farmer messages. Defaults to the live
+  // PashuSetu number; override with WHATSAPP_FROM_NUMBER when a Business API
+  // number is provisioned. A normal registered WhatsApp number works for the
+  // "Open WhatsApp" deep link (wa.me) — farmers message it to report.
+  const whatsappNumber = process.env.WHATSAPP_FROM_NUMBER || "+919004553021";
 
   // Villages for the simulator's location picker (signed-in readable).
   const { data: villages } = await supabase
