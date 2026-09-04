@@ -33,10 +33,12 @@ export function CaseMap({points}:{points:MapPoint[]}) {
     if(visible.length){
       L.heatLayer(points.map(p=>[p.lat,p.lng,Math.min(1,p.weight/10)] as [number,number,number]),{radius:30,blur:22,maxZoom:11,minOpacity:.3,gradient:HEAT_GRADIENT}).addTo(map);
       for(const p of visible){
-        const marker=L.circleMarker([p.displayLat,p.displayLng],{radius:7,color:"#fffdf7",weight:2,fillColor:PIN[p.urgency]??PIN.medium,fillOpacity:.96})
-          .bindPopup(`<b>${esc(p.title)}</b><br>${esc(p.sub)}`).addTo(map);
+        // Add the optional leader first, then the marker. Layer insertion order
+        // already keeps the marker above it; calling bringToFront here races
+        // Leaflet's SVG renderer attachment and can dereference parentNode.
         if(p.displayLat!==p.lat)L.polyline([[p.lat,p.lng],[p.displayLat,p.displayLng]],{color:PIN[p.urgency]??PIN.medium,weight:1,opacity:.45,dashArray:"2 4",interactive:false}).addTo(map);
-        marker.bringToFront();
+        L.circleMarker([p.displayLat,p.displayLng],{radius:7,color:"#fffdf7",weight:2,fillColor:PIN[p.urgency]??PIN.medium,fillOpacity:.96})
+          .bindPopup(`<b>${esc(p.title)}</b><br>${esc(p.sub)}`).addTo(map);
       }
       map.fitBounds(L.latLngBounds(visible.map(p=>[p.displayLat,p.displayLng])),{padding:[36,36],maxZoom:12});
     }else map.setView([19.0000386,73.1045685],10);
