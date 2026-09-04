@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { createClient } from "@/lib/supabase/client";
-import { WhatsAppIcon, FlaskIcon, PinIcon, InfoIcon } from "@/components/icons";
+import { WhatsAppIcon, FlaskIcon, PinIcon, InfoIcon, ArrowRightIcon } from "@/components/icons";
 import type { ChannelMessageRow } from "@/lib/channel/types";
 import type { VillageRow } from "@/lib/channel/parser";
 
@@ -57,25 +56,24 @@ interface ParsedDraft {
 
 const SAMPLES: Record<string, { text: string; label: string }[]> = {
   en: [
-    { text: "cattle fever mouth blisters drooling 2 sick 1 dead Shirur", label: "FMD · cattle · en" },
-    { text: "buffalo skin nodules fever 3 sick Shirur", label: "LSD · buffalo · en" },
-    { text: "poultry respiratory distress cough 4 dead Shirur", label: "ND · poultry · en" },
+    { text: "cattle fever mouth blisters drooling 2 sick 1 dead Shirur", label: "Cattle · fever · mouth blisters" },
+    { text: "buffalo skin nodules fever 3 sick Shirur", label: "Buffalo · skin nodules" },
+    { text: "poultry respiratory distress cough 4 dead Shirur", label: "Poultry · respiratory" },
   ],
   hi: [
-    { text: "भैंस ताप मुंह में छाले लार 2 बीमार 1 मरे Shirur", label: "खुरपका · भैंस · हिं" },
-    { text: "गाय त्वचा पर गांठ बुखार 3 बीमार Shirur", label: "लम्पी · गाय · हिं" },
+    { text: "भैंस ताप मुंह में छाले लार 2 बीमार 1 मरे Shirur", label: "भैंस · ताप · मुंह में छाले" },
+    { text: "गाय त्वचा पर गांठ बुखार 3 बीमार Shirur", label: "गाय · त्वचा पर गांठ" },
   ],
   mr: [
-    { text: "गाय ताप तोंडात फोड लाळ 2 आजारी 1 मेले Shirur", label: "लाळ्या खुरकूत · गाय · मरा" },
-    { text: "म्हैस त्वचेवर गाठ ताप 3 आजारी Shirur", label: "लम्पी · म्हैस · मरा" },
+    { text: "गाय ताप तोंडात फोड लाळ 2 आजारी 1 मेले Shirur", label: "गाय · ताप · तोंडात फोड" },
+    { text: "म्हैस त्वचेवर गाठ ताप 3 आजारी Shirur", label: "म्हैस · त्वचेवर गाठ" },
   ],
 };
 
 const SPECIES_BTNS = ["cattle", "buffalo", "goat", "sheep", "pig", "poultry"] as const;
-const SYMPTOM_BTNS = ["fever", "mouth_blisters", "drooling", "lameness", "skin_nodules", "milk_drop", "behaviour_change"] as const;
 const COUNT_BTNS = ["2 sick 1 dead", "1 dead", "3 sick", "1 sick"] as const;
 
-/** Dispatch: farmers get the "report by WhatsApp" entry point; officials get the inbox + simulator. */
+/** Dispatch: farmers get the in-app WhatsApp demo; officials get the receiving monitor only. */
 export function WhatsAppClient(props: {
   view: "farmer" | "official";
   villages: VillageRow[];
@@ -84,19 +82,24 @@ export function WhatsAppClient(props: {
   initialReports: LiveReport[];
   farmerReports: FarmerReport[];
   whatsappNumber: string;
+  farmerPhone: string | null;
 }) {
   if (props.view === "farmer") return <FarmerWhatsApp {...props} />;
   return <OfficerWhatsApp {...props} />;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   FARMER VIEW — "Report a sick animal by WhatsApp"
-   The entry point a farmer actually uses: the number to message, a tap-to-open
-   deep link, a short how-it-works, and their own report history.
+   FARMER VIEW — an honest, in-app WhatsApp demo.
+   The farmer types/taps a message → a bot bubble replies with the advisory →
+   a real report is created (which the officer sees on the case/inbox side).
+   A separate, clearly-labelled "In real WhatsApp" card shows the actual
+   number + Open WhatsApp path (manual for now). Everything below is clearly
+   marked a SIMULATION so nobody mistakes it for live WhatsApp automation.
    ─────────────────────────────────────────────────────────────────────────── */
 function FarmerWhatsApp({
   farmerReports,
   whatsappNumber,
+  farmerPhone,
 }: {
   villages: VillageRow[];
   initialMessages: ChannelMessageRow[];
@@ -104,138 +107,103 @@ function FarmerWhatsApp({
   initialReports: LiveReport[];
   farmerReports: FarmerReport[];
   whatsappNumber: string;
+  farmerPhone: string | null;
 }) {
   const t = useTranslations("whatsapp");
   const ts = useTranslations("species");
   const tSym = useTranslations("symptoms");
   const locale = useLocale();
 
-  const sampleSet = SAMPLES[locale] ?? SAMPLES.en;
   const waDigits = whatsappNumber.replace(/[^\d]/g, "");
-
-  const waLink = (prefill: string) =>
-    `https://wa.me/${waDigits}?text=${encodeURIComponent(prefill)}`;
+  const waLink = (prefill: string) => `https://wa.me/${waDigits}?text=${encodeURIComponent(prefill)}`;
+  const sampleSet = SAMPLES[locale] ?? SAMPLES.en;
 
   const fmtDate = (iso: string) =>
     new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
 
   return (
     <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-      {/* WhatsApp entry card */}
-      <div className="card lg:col-span-2">
-        <div className="card-head">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-sage-soft text-sage">
-              <WhatsAppIcon className="h-5 w-5" />
-            </span>
-            <div>
-              <h3 className="text-[13px]">{t("howTitle")}</h3>
-              <p className="text-[12px] text-mut">{t("pilotNote")}</p>
+      {/* ── SIMULATION — the farmer's actual demo experience ────────────── */}
+      <SimulatorCard
+        phone={farmerPhone ?? whatsappNumber}
+        className="lg:col-span-2"
+        badge={t("demoBadge")}
+      />
+
+      {/* ── side column: real WhatsApp + my reports ─────────────────────── */}
+      <div className="flex flex-col gap-4">
+        <div className="card">
+          <div className="card-head">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-sage-soft text-sage">
+                <WhatsAppIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-[13px]">{t("realWhatsappTitle")}</h3>
+                <p className="text-[12px] text-mut">{t("realWhatsappSub")}</p>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* number + open button */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-line-2 bg-paper/50 px-5 py-4">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{t("numberLabel")}</div>
-            <div className="font-mono text-lg font-bold tracking-tight text-ink">{whatsappNumber}</div>
-          </div>
-          <a
-            href={waLink(sampleSet[0]?.text ?? "")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-dark ml-auto inline-flex items-center gap-1.5"
-          >
-            <WhatsAppIcon className="h-4 w-4" />
-            {t("openWhatsapp")}
-          </a>
-        </div>
-
-        {/* how it works */}
-        <div className="border-b border-line-2 px-5 py-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[t("how1"), t("how2"), t("how3")].map((step, i) => (
-            <div key={i} className="flex items-start gap-2.5 rounded-2xl border border-line bg-paper/60 p-3">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent">{i + 1}</span>
-              <span className="text-[12.5px] leading-relaxed text-ink-2">{step}</span>
-            </div>
-          ))}
-          </div>
-        </div>
-
-        {/* example messages — tap to open WhatsApp prefilled */}
-        <div className="px-5 py-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{t("exampleSuffix")}</div>
-          <div className="flex flex-wrap gap-2">
-            {sampleSet.map((s) => (
-              <a
-                key={s.label}
-                href={waLink(s.text)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="chip cursor-pointer border-line text-ink-2 hover:border-accent"
-              >
-                {s.label}
+          <div className="px-5 py-4">
+            <div className="rounded-2xl border border-line-2 bg-paper/60 p-4 text-center">
+              <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{t("numberLabel")}</div>
+              <div className="font-mono text-xl font-bold tracking-tight text-ink">{whatsappNumber}</div>
+              <a href={waLink(sampleSet[0]?.text ?? "")} target="_blank" rel="noopener noreferrer"
+                className="btn btn-dark mt-3 inline-flex w-full items-center justify-center gap-1.5">
+                <WhatsAppIcon className="h-4 w-4" />
+                {t("openWhatsapp")}
               </a>
-            ))}
-          </div>
-
-          {/* example reply */}
-          <div className="mt-4 rounded-2xl border border-line-2 bg-paper/60 p-4">
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("exampleReplyTitle")}</div>
-            <div className="mt-1.5 max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-2.5 text-[13px] leading-relaxed text-ink">
-              <div>{t("confirmPrefix")}</div>
-              <div className="mt-1 text-ink-2">cattle · 2 sick · 1 dead</div>
-              <div className="mt-0.5 font-semibold">Suspected: {t("diseaseExample")}</div>
-              <div className="mt-1 text-ink-2">{t("exampleAdvice")}</div>
-              <div className="mt-1 text-[11.5px] italic text-mut">{t("disclaimer")}</div>
             </div>
+            <div className="mt-3 space-y-2">
+              {[t("how1"), t("how2"), t("how3")].map((step, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent">{i + 1}</span>
+                  <span className="text-[12.5px] leading-relaxed text-ink-2">{step}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-mut">
+              <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{t("realWhatsappNote")}</span>
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* Your reports */}
-      <div className="card">
-        <div className="card-head">
-          <h3>{t("yourReportsTitle")}</h3>
+        <div className="card">
+          <div className="card-head"><h3>{t("yourReportsTitle")}</h3></div>
+          {farmerReports.length === 0 ? (
+            <p className="px-5 py-4 text-[12.5px] text-mut">{t("yourReportsEmpty")}</p>
+          ) : (
+            <ul className="divide-y divide-line-2">
+              {farmerReports.map((r) => {
+                const cand = r.triage_results?.[0]?.disease_candidates?.[0];
+                const disease = cand ? (cand[`name_${locale}` as keyof typeof cand] ?? cand.name_en) : null;
+                return (
+                  <li key={r.id} className="flex items-start gap-3 px-5 py-3 text-[12.5px]">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-ink-2"><FlaskIcon className="h-4 w-4" /></span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 font-semibold text-ink">
+                        {ts(r.species)}
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.source === "whatsapp" ? "bg-sage-soft text-sage" : "bg-paper text-mut"}`}>
+                          {r.source === "whatsapp" ? t("sourceWhatsapp") : t("sourceApp")}
+                        </span>
+                      </div>
+                      {r.symptoms?.length > 0 && (
+                        <div className="text-[11px] text-mut">{r.symptoms.slice(0, 3).map((s) => tSym(s)).join(", ")}</div>
+                      )}
+                      <div className="text-[11px] text-mut">{r.sick_count}/{r.dead_count} · {r.village ?? r.district ?? "—"}</div>
+                      {disease && <div className="text-[11px] font-semibold text-accent">{t("disease")}: {disease}</div>}
+                    </div>
+                    <span className="shrink-0 text-[10.5px] text-mut2">{fmtDate(r.created_at)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
-        {farmerReports.length === 0 ? (
-          <p className="px-5 py-4 text-[12.5px] text-mut">{t("yourReportsEmpty")}</p>
-        ) : (
-          <ul className="divide-y divide-line-2">
-            {farmerReports.map((r) => {
-              const cand = r.triage_results?.[0]?.disease_candidates?.[0];
-              const disease = cand ? (cand[`name_${locale}` as keyof typeof cand] ?? cand.name_en) : null;
-              return (
-                <li key={r.id} className="flex items-start gap-3 px-5 py-3 text-[12.5px]">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-ink-2">
-                    <FlaskIcon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5 font-semibold text-ink">
-                      {ts(r.species)}
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.source === "whatsapp" ? "bg-sage-soft text-sage" : "bg-paper text-mut"}`}>
-                        {r.source === "whatsapp" ? t("sourceWhatsapp") : t("sourceApp")}
-                      </span>
-                    </div>
-                    {r.symptoms?.length > 0 && (
-                      <div className="text-[11px] text-mut">{r.symptoms.slice(0, 3).map((s) => tSym(s)).join(", ")}</div>
-                    )}
-                    <div className="text-[11px] text-mut">
-                      {r.sick_count}/{r.dead_count} · {r.village ?? r.district ?? "—"}
-                    </div>
-                    {disease && <div className="text-[11px] font-semibold text-accent">{t("disease")}: {disease}</div>}
-                  </div>
-                  <span className="shrink-0 text-[10.5px] text-mut2">{fmtDate(r.created_at)}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
       </div>
 
-      {/* disclaimer */}
+      {/* ── footer disclaimer ───────────────────────────────────────────── */}
       <div className="flex items-start gap-1.5 border-t border-line-2 px-5 py-3 text-[11px] leading-relaxed text-mut lg:col-span-3">
         <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>{t("disclaimer")}</span>
@@ -245,83 +213,52 @@ function FarmerWhatsApp({
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   OFFICER VIEW — receiving end: simulator (demo), channel inbox, live reports.
+   SIMULATOR — the shared in-app demo used by the farmer. Type/tap a message,
+   get the advisory reply in a chat bubble; the message also creates a real
+   report so an officer sees it. Never sends anything to real WhatsApp.
    ─────────────────────────────────────────────────────────────────────────── */
-function OfficerWhatsApp({
-  villages,
-  initialMessages,
-  schemaReady,
-  initialReports,
-}: {
-  villages: VillageRow[];
-  initialMessages: ChannelMessageRow[];
-  schemaReady: boolean;
-  initialReports: LiveReport[];
-  farmerReports: FarmerReport[];
-  whatsappNumber: string;
-}) {
+function SimulatorCard({ phone, className, badge }: { phone: string; className?: string; badge: string }) {
   const t = useTranslations("whatsapp");
   const ts = useTranslations("species");
   const tSym = useTranslations("symptoms");
   const locale = useLocale();
 
-  const supabase = useMemo(() => createClient(), []);
-  const [phone, setPhone] = useState("+919004553021");
-  const [village, setVillage] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chat, setChat] = useState<ChatBubble[]>([]);
   const [parsed, setParsed] = useState<ParsedDraft | null>(null);
   const [reply, setReply] = useState<string | null>(null);
-  const [inbox, setInbox] = useState<ChannelMessageRow[]>(initialMessages);
-  const [liveReports, setLiveReports] = useState<LiveReport[]>(initialReports);
 
   const sampleSet = SAMPLES[locale] ?? SAMPLES.en;
+  const parsedSymptoms = parsed?.symptoms ?? [];
 
   function nowLabel() {
-    return new Intl.DateTimeFormat(locale === "en" ? "en-IN" : locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(new Date());
+    return new Intl.DateTimeFormat(locale === "en" ? "en-IN" : locale, { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
   }
-  function pushUser(message: string) {
-    setChat((c) => [...c, { id: crypto.randomUUID(), from: "user", text: message, time: nowLabel() }]);
-  }
-  function pushBot(message: string) {
-    setChat((c) => [...c, { id: crypto.randomUUID(), from: "bot", text: message, time: nowLabel() }]);
-  }
-  async function refresh() {
-    const [msgs, reports] = await Promise.all([
-      supabase.from("channel_messages").select("id, channel, direction, phone, message_type, text, reply_text, report_id, district, created_at").order("created_at", { ascending: false }).limit(40),
-      supabase.from("reports").select("id, species, sick_count, dead_count, district, status, created_at, triage_results(disease_candidates, urgency)").order("created_at", { ascending: false }).limit(6),
-    ]);
-    if (!msgs.error) setInbox((msgs.data ?? []) as unknown as ChannelMessageRow[]);
-    if (!reports.error) setLiveReports((reports.data ?? []) as unknown as LiveReport[]);
+  function push(message: string, from: "user" | "bot") {
+    setChat((c) => [...c, { id: crypto.randomUUID(), from, text: message, time: nowLabel() }]);
   }
   async function send(message: string) {
     const m = (message ?? "").trim();
     if (!m || busy) return;
-    let body = m;
-    if (village && !body.toLowerCase().includes(village.toLowerCase())) body = `${body} ${village}`;
-    pushUser(body);
+    push(m, "user");
+    setText("");
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/whatsapp/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, text: body, messageType: "text", channel: "whatsapp" }),
+        body: JSON.stringify({ phone, text: m, messageType: "text", channel: "whatsapp" }),
       });
       const json = await res.json();
       if (!res.ok) setError(json?.error ?? `HTTP ${res.status}`);
       else {
-        if (json.reply) pushBot(json.reply);
+        if (json.reply) push(json.reply, "bot");
         setReply(json.reply ?? null);
         setParsed(json.draft ?? null);
         if (json.note) setError(json.note);
-        await refresh();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -333,140 +270,168 @@ function OfficerWhatsApp({
     setText((cur) => (cur ? `${cur} ${part}` : part));
   }
 
-  const parsedSymptoms = parsed?.symptoms ?? [];
+  return (
+    <div className={`card ${className ?? ""}`}>
+      <div className="card-head">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-sage-soft text-sage">
+            <WhatsAppIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <h3 className="text-[13px]">{t("simTitle")}</h3>
+            <p className="text-[12px] text-mut">{t("simHint")}</p>
+          </div>
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-accent">
+            <InfoIcon className="h-3 w-3" />
+            {badge}
+          </span>
+        </div>
+      </div>
+
+      {/* chat */}
+      <div className="flex h-[320px] flex-col gap-2.5 overflow-y-auto bg-[#efe9e2]/40 px-4 py-4">
+        {chat.length === 0 && (
+          <div className="m-auto max-w-[320px] rounded-2xl border border-dashed border-line-2 bg-paper px-4 py-3 text-center text-[12.5px] text-mut">
+            {t("tryHint")}
+          </div>
+        )}
+        {chat.map((b) => (
+          <div key={b.id} className={`flex ${b.from === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-[var(--shadow-card)] ${b.from === "user" ? "rounded-br-sm bg-ink text-paper" : "rounded-bl-sm border border-line bg-card text-ink"}`}>
+              <div className="whitespace-pre-wrap">{b.text}</div>
+              <div className={`mt-1 text-right text-[10px] ${b.from === "user" ? "text-paper/60" : "text-mut2"}`}>{b.time}</div>
+            </div>
+          </div>
+        ))}
+        {busy && <div className="flex justify-start"><div className="rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-2 text-[12.5px] text-mut">…</div></div>}
+      </div>
+
+      {/* quick-fill chips */}
+      <div className="flex flex-wrap gap-1.5 border-b border-line-2 bg-paper/40 px-4 py-3">
+        <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{t("sampleTitle")}</span>
+        {sampleSet.map((s) => (
+          <button key={s.label} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => setText(s.text)}>{s.label}</button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5 border-b border-line-2 px-4 py-2.5">
+        {SPECIES_BTNS.slice(0, 4).map((s) => (
+          <button key={s} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => appendToText(s)}>{ts(s)}</button>
+        ))}
+        <span className="mx-1 w-px bg-line-2" />
+        {COUNT_BTNS.map((c) => (
+          <button key={c} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => appendToText(c)}>{c}</button>
+        ))}
+      </div>
+
+      {/* input */}
+      <div className="flex items-center gap-2 border-t border-line-2 bg-paper/70 px-4 py-3">
+        <input data-testid="wa-text" className="field flex-1" placeholder={t("textPlaceholder")} value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(text); } }} />
+        <button data-testid="wa-send" type="button" disabled={busy || !text.trim()} onClick={() => send(text)}
+          className="btn btn-dark inline-flex shrink-0 items-center gap-1.5 disabled:opacity-50">
+          <ArrowRightIcon className="h-4 w-4" />
+          {t("send")}
+        </button>
+      </div>
+
+      {/* parsed understanding + reply */}
+      <div className="border-t border-line-2 px-5 py-4">
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{t("parsedTitle")}</div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12.5px] sm:grid-cols-4">
+          <Field label={t("species")} value={parsed?.species ? ts(parsed.species) : t("none")} testid="wa-species" muted={!parsed} />
+          <Field label={t("symptoms")} value={parsedSymptoms.length ? parsedSymptoms.map((s) => tSym(s)).join(", ") : t("none")} muted={!parsed} />
+          <Field label={t("counts")} value={parsed ? `${parsed.sickCount} / ${parsed.deadCount}` : t("none")} testid="wa-counts" muted={!parsed} />
+          <Field label={t("location")} value={parsed?.village ? `${parsed.village}${parsed.district ? ` · ${parsed.district}` : ""}` : t("none")} muted={!parsed} />
+        </div>
+        <div className="mt-3 rounded-xl border border-line-2 bg-paper/60 px-3 py-2.5">
+          <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("replyTitle")}</div>
+          <div data-testid="wa-reply" className="mt-1 whitespace-pre-wrap text-[13px] text-ink-2">{reply ?? t("notParsed")}</div>
+        </div>
+      </div>
+
+      {error && <div className="mx-4 mb-3 rounded-xl bg-[#F9E3DB] px-4 py-2.5 text-[13px] font-semibold text-accent">{error}</div>}
+      <div className="flex items-start gap-1.5 border-t border-line-2 px-4 py-2.5 text-[11px] leading-relaxed text-mut">
+        <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>{t("simNote")}</span>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, testid, muted }: { label: string; value: string; testid?: string; muted?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-mut2">{label}</div>
+      <div data-testid={testid} className={`truncate text-[12.5px] ${muted ? "text-mut2" : "text-ink"}`}>{value}</div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   OFFICER VIEW — receiving end only. A clean monitor of the WhatsApp channel:
+   the created reports and the inbound/outbound messages. No simulator here.
+   ─────────────────────────────────────────────────────────────────────────── */
+function OfficerWhatsApp({
+  initialMessages,
+  schemaReady,
+  initialReports,
+}: {
+  villages: VillageRow[];
+  initialMessages: ChannelMessageRow[];
+  schemaReady: boolean;
+  initialReports: LiveReport[];
+  farmerReports: FarmerReport[];
+  whatsappNumber: string;
+  farmerPhone: string | null;
+}) {
+  const t = useTranslations("whatsapp");
+  const ts = useTranslations("species");
+  const locale = useLocale();
+
+  const [inbox] = useState<ChannelMessageRow[]>(initialMessages);
+  const [liveReports] = useState<LiveReport[]>(initialReports);
 
   return (
-    <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-      {/* simulator / chat */}
-      <div className="card lg:col-span-2">
+    <div className="mt-6 grid grid-cols-1 gap-4">
+      {/* received reports */}
+      <div className="card">
         <div className="card-head">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-sage-soft text-sage">
-              <WhatsAppIcon className="h-5 w-5" />
-            </span>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-soft text-accent"><FlaskIcon className="h-4 w-4" /></span>
             <div>
-              <h3>{t("simTitle")}</h3>
-              <p className="text-[12px] text-mut">{t("simHint")}</p>
+              <h3>{t("liveTitle")}</h3>
+              <p className="text-[12px] text-mut">{t("liveHint")}</p>
             </div>
           </div>
         </div>
-
-        <div className="flex flex-wrap items-end gap-3 border-b border-line-2 bg-paper/50 px-4 py-3">
-          <div className="min-w-[150px] flex-1">
-            <label className="field-label" htmlFor="wa-phone">{t("phoneLabel")}</label>
-            <input id="wa-phone" className="field" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="min-w-[150px] flex-1">
-            <label className="field-label" htmlFor="wa-village">{t("villageLabel")}</label>
-            <select id="wa-village" className="field" value={village} onChange={(e) => setVillage(e.target.value)}>
-              <option value="">{t("none")}</option>
-              {villages.map((v) => (
-                <option key={v.name} value={v.name}>{v.name} · {v.district}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 border-b border-line-2 px-4 py-3">
-          {SPECIES_BTNS.map((s) => (
-            <button key={s} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => appendToText(s)}>{ts(s)}</button>
-          ))}
-          <span className="mx-1 w-px bg-line-2" />
-          {SYMPTOM_BTNS.map((s) => (
-            <button key={s} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => appendToText(s.replace(/_/g, " "))}>{tSym(s)}</button>
-          ))}
-          <span className="mx-1 w-px bg-line-2" />
-          {COUNT_BTNS.map((c) => (
-            <button key={c} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => appendToText(c)}>{c}</button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 border-b border-line-2 bg-paper/40 px-4 py-3">
-          <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{t("sampleTitle")}</span>
-          {sampleSet.map((s) => (
-            <button key={s.label} type="button" className="chip cursor-pointer hover:border-accent" onClick={() => setText(s.text)}>{s.label}</button>
-          ))}
-        </div>
-
-        <div className="flex h-[340px] flex-col gap-2.5 overflow-y-auto bg-[#efe9e2]/40 px-4 py-4">
-          {chat.length === 0 && (
-            <div className="m-auto max-w-[300px] rounded-2xl border border-line bg-paper px-4 py-3 text-center text-[12.5px] text-mut">{t("notParsed")}</div>
-          )}
-          {chat.map((b) => (
-            <div key={b.id} className={`flex ${b.from === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-[var(--shadow-card)] ${b.from === "user" ? "rounded-br-sm bg-ink text-paper" : "rounded-bl-sm border border-line bg-card text-ink"}`}>
-                <div className="whitespace-pre-wrap">{b.text}</div>
-                <div className={`mt-1 text-right text-[10px] ${b.from === "user" ? "text-paper/60" : "text-mut2"}`}>{b.time}</div>
-              </div>
-            </div>
-          ))}
-          {busy && <div className="flex justify-start"><div className="rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-2 text-[12.5px] text-mut">…</div></div>}
-        </div>
-
-        <div className="flex items-center gap-2 border-t border-line-2 bg-paper/70 px-4 py-3">
-          <input data-testid="wa-text" className="field flex-1" placeholder={t("textPlaceholder")} value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(text); setText(""); } }} />
-          <button data-testid="wa-send" type="button" disabled={busy || !text.trim()}
-            onClick={() => { send(text); setText(""); }} className="btn btn-dark shrink-0 disabled:opacity-50">
-            {t("send")}
-          </button>
-        </div>
-
-        {error && <div data-testid="wa-error" className="mx-4 mb-3 rounded-xl bg-[#F9E3DB] px-4 py-2.5 text-[13px] font-semibold text-accent">{error}</div>}
-        <div className="flex items-start gap-1.5 border-t border-line-2 px-4 py-2.5 text-[11px] leading-relaxed text-mut">
-          <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{t("webhookNote")} {t("poweredBy")}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div className="card">
-          <div className="card-head"><h3>{t("parsedTitle")}</h3></div>
-          <div className="space-y-3 px-5 py-4 text-[13px]">
-            <Row label={t("species")} value={parsed?.species ? ts(parsed.species) : t("none")} testid="wa-species" />
-            <Row label={t("symptoms")} value={parsedSymptoms.length ? parsedSymptoms.map((s) => tSym(s)).join(", ") : t("none")} />
-            <Row label={t("counts")} value={parsed ? `${parsed.sickCount} / ${parsed.deadCount}` : t("none")} testid="wa-counts" />
-            <Row label={t("location")} value={parsed?.village ? `${parsed.village}${parsed.district ? ` · ${parsed.district}` : ""}` : t("none")} />
-            {parsed && parsed.unclear && parsed.unclear.length > 0 && (
-              <Row label={t("unclear")} value={parsed.unclear.slice(0, 4).join(", ")} />
-            )}
-            <div className="rounded-xl border border-line-2 bg-paper/60 px-3 py-2.5">
-              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-mut2">{t("replyTitle")}</div>
-              <div data-testid="wa-reply" className="mt-1 whitespace-pre-wrap text-[13px] text-ink-2">{reply ?? t("notParsed")}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-head"><h3>{t("liveTitle")}</h3></div>
-          {liveReports.length === 0 ? (
-            <p className="px-5 py-4 text-[12.5px] text-mut">{t("notParsed")}</p>
-          ) : (
-            <ul className="divide-y divide-line-2">
-              {liveReports.map((r) => {
-                const cand = r.triage_results?.[0]?.disease_candidates?.[0];
-                const disease = cand ? (cand[`name_${locale}` as keyof typeof cand] ?? cand.name_en) : null;
-                return (
-                  <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-[12.5px]">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-ink-2"><FlaskIcon className="h-4 w-4" /></span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 font-semibold text-ink">
-                        {ts(r.species)}
-                        {disease && <span className="chip">{disease}</span>}
-                      </div>
-                      <div className="text-[11px] text-mut">{r.sick_count} {t("counts")} · {r.district ?? "—"}</div>
+        {liveReports.length === 0 ? (
+          <p className="px-5 py-4 text-[12.5px] text-mut">{t("notParsed")}</p>
+        ) : (
+          <ul className="divide-y divide-line-2">
+            {liveReports.map((r) => {
+              const cand = r.triage_results?.[0]?.disease_candidates?.[0];
+              const disease = cand ? (cand[`name_${locale}` as keyof typeof cand] ?? cand.name_en) : null;
+              return (
+                <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-[12.5px]">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-ink-2"><FlaskIcon className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 font-semibold text-ink">
+                      {ts(r.species)}
+                      {disease && <span className="chip">{disease}</span>}
                     </div>
-                    <span className="text-[10.5px] text-mut2">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(r.created_at))}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+                    <div className="text-[11px] text-mut">{r.sick_count} {t("counts")} · {r.district ?? "—"}</div>
+                  </div>
+                  <span className="text-[10.5px] text-mut2">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(r.created_at))}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
-      <div className="card lg:col-span-3">
+      {/* the messages the officer would have received */}
+      <div className="card">
         <div className="card-head">
           <div className="flex items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-soft text-accent"><PinIcon className="h-4 w-4" /></span>
@@ -477,7 +442,7 @@ function OfficerWhatsApp({
           </div>
         </div>
         {!schemaReady ? (
-          <p className="px-5 py-4 text-[12.5px] text-mut">{t("inboxEmpty")} · {t("guidanceHint")}</p>
+          <p className="px-5 py-4 text-[12.5px] text-mut">{t("inboxEmpty")}</p>
         ) : inbox.length === 0 ? (
           <p className="px-5 py-4 text-[12.5px] text-mut">{t("inboxEmpty")}</p>
         ) : (
@@ -512,15 +477,11 @@ function OfficerWhatsApp({
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-function Row({ label, value, testid }: { label: string; value: string; testid?: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.1em] text-mut2">{label}</span>
-      <span data-testid={testid} className="text-right text-[13px] text-ink-2">{value}</span>
+      <div className="flex items-start gap-1.5 border-t border-line-2 px-5 py-3 text-[11px] leading-relaxed text-mut">
+        <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>{t("disclaimer")} {t("simNote")}</span>
+      </div>
     </div>
   );
 }

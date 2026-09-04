@@ -604,6 +604,12 @@
     "confirmPrefix": "Thank you. Your report is recorded.",
     "diseaseExample": "Lumpy Skin Disease",
     "exampleAdvice": "Isolate the affected animal, stop its movement, and contact your nearest vet. First aid: clean the skin, apply soothing ointment, ensure feed and water.",
-    "disclaimer": "This is preliminary triage, not a diagnosis. Please consult a veterinarian."
+    "disclaimer": "This is preliminary triage, not a diagnosis. Please consult a veterinarian.",
+    "demoBadge": "Simulation",
+    "tryHint": "Tap a sample below or type how the animal looks, then press Send.",
+    "realWhatsappTitle": "In real WhatsApp",
+    "realWhatsappSub": "Message this number directly from your phone.",
+    "realWhatsappNote": "For now this is manual — the number goes to PashuSetu. The automatic reply you see above needs the number on Meta's WhatsApp Business API.",
+    "simNote": "This is an in-app simulation of the WhatsApp flow — it does not send a real WhatsApp message. It runs the same report → triage → reply pipeline a live WhatsApp would."
   }
 }

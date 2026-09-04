@@ -2,11 +2,13 @@
  * PashuSetu · P7 — simulator endpoint.
  *
  * Drives the SAME `ingestMessage` pipeline as the real WhatsApp webhook, but
- * from the officer dashboard instead of the Meta Graph API. This lets a judge
- * demo the entire report → triage → localised advisory reply flow live with a
- * single typed message, without a real Meta Business number/token.
+ * from the in-app dashboard instead of the Meta Graph API. This lets a judge
+ * (or a farmer using the in-app demo) see the entire report → triage →
+ * localised advisory reply flow live with a single typed message, without a
+ * real Meta Business number/token.
  *
- * Authenticated: must be an officer/lab/vet/admin (RLS-session checked).
+ * Authenticated: any signed-in user with a profile (officer/lab/vet/admin on
+ * the receiving side; farmer/pashu_mitra on the farmer demo side).
  */
 
 import { NextResponse } from "next/server";
@@ -28,7 +30,9 @@ export async function POST(req: Request) {
     .select("role, district")
     .eq("id", user.id)
     .single<{ role: string; district: string | null }>();
-  if (!profile || !["officer", "lab", "vet", "admin"].includes(profile.role)) {
+  // Any signed-in user with a role may drive this in-app demo (officers
+  // monitor the receiving end; farmers use the demo to see the reply).
+  if (!profile || !["officer", "lab", "vet", "admin", "farmer", "pashu_mitra"].includes(profile.role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

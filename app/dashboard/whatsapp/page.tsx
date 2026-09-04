@@ -15,9 +15,9 @@ export default async function WhatsAppPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, district")
+    .select("role, district, phone")
     .eq("id", uid)
-    .single<{ role: string | null; district: string | null }>();
+    .single<{ role: string | null; district: string | null; phone: string | null }>();
   if (!profile) redirect("/login");
 
   const role = profile.role ?? "farmer";
@@ -96,6 +96,7 @@ export default async function WhatsAppPage() {
         initialReports={liveReports}
         farmerReports={farmerReports}
         whatsappNumber={whatsappNumber}
+        farmerPhone={profile.phone ?? null}
       />
     </section>
   );
