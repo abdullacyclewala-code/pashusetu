@@ -30,7 +30,7 @@ import {
  * route-level loading.tsx paints the skeleton while data loads.
  */
 
-type NavKey = "dash" | "report" | "cases" | "herd" | "alerts" | "whatsapp" | "triage";
+type NavKey = "dash" | "report" | "cases" | "herd" | "alerts" | "whatsapp" | "iot" | "triage";
 
 interface NavItem {
   key: NavKey;
@@ -61,6 +61,7 @@ const NAV: NavItem[] = [
     roles: ["farmer", "pashu_mitra", "admin"],
     icon: HerdIcon,
   },
+  { key: "iot", href: "/dashboard/iot", roles: ["vet", "officer", "admin"], icon: TriageIcon },
   { key: "alerts", href: "/dashboard/alerts", roles: ALL, icon: BellIcon },
   {
     key: "whatsapp",
@@ -86,7 +87,9 @@ function keyFromPath(pathname: string): NavKey {
     seg === "cases" ||
     seg === "herd" ||
     seg === "alerts" ||
-    seg === "triage"
+    seg === "triage" ||
+    seg === "whatsapp" ||
+    seg === "iot"
   )
     return seg;
   return "dash";

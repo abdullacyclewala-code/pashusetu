@@ -14,7 +14,8 @@
     "logout": "Sign out",
     "home": "Home",
     "alerts": "Alerts",
-    "whatsapp": "WhatsApp"
+    "whatsapp": "WhatsApp",
+    "iot": "Sensors"
   },
   "titles": {
     "dash": "Overview",
@@ -23,7 +24,8 @@
     "herd": "My herd",
     "triage": "Triage",
     "alerts": "Alerts",
-    "whatsapp": "Farmer channel"
+    "whatsapp": "Farmer channel",
+    "iot": "Herd sensors"
   },
   "crumbs": {
     "dash": "Dashboard",
@@ -628,5 +630,33 @@
       "medium": "Medium risk",
       "high": "High risk"
     }
+  },
+  "iot": {
+    "eyebrow": "Automated surveillance",
+    "heading": "Herd sensor digital twin",
+    "lede": "Production-shaped wearable telemetry that can create a report before a farmer notices clinical signs.",
+    "simTitle": "Scenario simulator",
+    "simHint": "Streams three collars through healthy baseline days, a heat-wave control, then an FMD-like fever and rumination drop. The schema is identical for real hardware.",
+    "run": "Run 7-day scenario",
+    "reset": "Reset demo",
+    "running": "Simulating…",
+    "lastSeen": "Last signal: {date}",
+    "waiting": "Waiting for signal",
+    "temperature": "Body temperature",
+    "rumination": "Rumination",
+    "activity": "Activity index",
+    "milk": "Milk yield",
+    "live": "Live stream",
+    "detections": "Sensor detections",
+    "anomaly": "Fever + rumination drop",
+    "animals": "animals concurrent",
+    "deviation": "+{temp}°C · rumination down {rum}%",
+    "reportCreated": "Automatic report created",
+    "noDetections": "Run the scenario to see explainable detections.",
+    "autoReports": "Automatic reports",
+    "animalsAffected": "animals affected",
+    "noReports": "No sensor-generated reports yet.",
+    "error": "Simulation failed.",
+    "disclaimer": "Sensor screening is preliminary triage, not a diagnosis. Every automatic report requires veterinary verification and must never replace a veterinarian."
   }
 }
